@@ -29,6 +29,15 @@ pub type AssetBalanceOf<T> = <<T as Config>::Fungibles as fungibles::Inspect<
 	<T as frame_system::Config>::AccountId,
 >>::Balance;
 
+#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, Default, TypeInfo)]
+pub struct LiquidityPool<T: Config> {
+	pub assets: (AssetId, AssetId),
+	pub reserves: (Balance, Balance),
+	pub total_liquidity: Balance,
+	pub liquidity_token: AssetId,
+	_marker: PhantomData<T>,
+}
+
 // All pallet logic is defined in its own module and must be annotated by the `pallet` attribute.
 #[frame_support::pallet]
 pub mod pallet {
@@ -62,13 +71,12 @@ pub mod pallet {
 		+ fungibles::Create<Self::AccountId>;
 	}
 
-	/// A storage item for this pallet.
+	/// A storage map for storing liquidity pools
 	#[pallet::storage]
-	pub type SomeItem<T> = StorageValue<_, u32>;
+	pub type LiquidityPools<T: Config> =
+	StorageMap<_, Blake2_128Concat, (AssetId, AssetId), LiquidityPool<T>, ValueQuery>;
 
-	/// A storage map for this pallet.
-	#[pallet::storage]
-	pub type SomeMap<T> = StorageMap<_, Blake2_128Concat, u32, u32>;
+	// TODO: Define LiquidityTokens storage
 
 	/// Events that functions in this pallet can emit.
 	#[pallet::event]

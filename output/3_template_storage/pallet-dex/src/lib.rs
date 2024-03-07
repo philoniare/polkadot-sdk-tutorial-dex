@@ -76,7 +76,10 @@ pub mod pallet {
 	pub type LiquidityPools<T: Config> =
 	StorageMap<_, Blake2_128Concat, (AssetId, AssetId), LiquidityPool<T>, ValueQuery>;
 
-	// TODO: Define LiquidityTokens storage
+	/// Storage map for storing mapping of liquidity token to asset pair
+	#[pallet::storage]
+	pub type LiquidityTokens<T: Config> =
+	StorageMap<_, Blake2_128Concat, AssetId, (AssetId, AssetId), ValueQuery>;
 
 	/// Events that functions in this pallet can emit.
 	#[pallet::event]
@@ -95,10 +98,5 @@ pub mod pallet {
 	#[pallet::call]
 	impl<T: Config> Pallet<T> {
 		/* User Callable Functions Go Here */
-	}
-
-	/// The pallet's internal functions.
-	impl<T: Config> Pallet<T> {
-		/* Internally Callable Functions Go Here */
 	}
 }

@@ -62,13 +62,15 @@ pub mod pallet {
 		+ fungibles::Create<Self::AccountId>;
 	}
 
-	/// A storage item for this pallet.
+	/// A storage map for storing liquidity pools
 	#[pallet::storage]
-	pub type SomeItem<T> = StorageValue<_, u32>;
+	pub type LiquidityPools<T: Config> =
+	StorageMap<_, Blake2_128Concat, (AssetId, AssetId), LiquidityPool<T>, ValueQuery>;
 
-	/// A storage map for this pallet.
+	/// Storage map for storing mapping of liquidity token to asset pair
 	#[pallet::storage]
-	pub type SomeMap<T> = StorageMap<_, Blake2_128Concat, u32, u32>;
+	pub type LiquidityTokens<T: Config> =
+	StorageMap<_, Blake2_128Concat, AssetId, (AssetId, AssetId), ValueQuery>;
 
 	/// Events that functions in this pallet can emit.
 	#[pallet::event]

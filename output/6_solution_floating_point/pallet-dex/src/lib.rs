@@ -15,6 +15,8 @@ mod mock;
 #[cfg(test)]
 mod tests;
 
+mod liquidity_pool;
+
 // Define type aliases for easier access
 pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
 pub type AssetIdOf<T> = <<T as Config>::Fungibles as fungibles::Inspect<
@@ -62,13 +64,15 @@ pub mod pallet {
 		+ fungibles::Create<Self::AccountId>;
 	}
 
-	/// A storage item for this pallet.
+	/// A storage map for storing liquidity pools
 	#[pallet::storage]
-	pub type SomeItem<T> = StorageValue<_, u32>;
+	pub type LiquidityPools<T: Config> =
+	StorageMap<_, Blake2_128Concat, (AssetId, AssetId), LiquidityPool<T>, ValueQuery>;
 
-	/// A storage map for this pallet.
+	/// Storage map for storing mapping of liquidity token to asset pair
 	#[pallet::storage]
-	pub type SomeMap<T> = StorageMap<_, Blake2_128Concat, u32, u32>;
+	pub type LiquidityTokens<T: Config> =
+	StorageMap<_, Blake2_128Concat, AssetId, (AssetId, AssetId), ValueQuery>;
 
 	/// Events that functions in this pallet can emit.
 	#[pallet::event]
@@ -80,7 +84,23 @@ pub mod pallet {
 	/// Errors that can be returned by this pallet.
 	#[pallet::error]
 	pub enum Error<T> {
-		/* Pallet Error Variants Go Here */
+		/// Insufficient liquidity available in the pool.
+		InsufficientLiquidity,
+
+		/// Insufficient reserves available in the pool for the requested operation.
+		InsufficientReserves,
+
+		/// Overflow occurred when adding to the reserve balance.
+		ReserveOverflow,
+
+		/// Overflow occurred when adding to the total liquidity.
+		LiquidityOverflow,
+
+		/// The asset being swapped in is not part of the specified trading pair.
+		InvalidAssetIn,
+
+		/// The asset being swapped out is not part of the specified trading pair.
+		InvalidAssetOut,
 	}
 
 	/// The pallet's dispatchable functions ([`Call`]s).
