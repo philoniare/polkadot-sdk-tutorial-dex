@@ -1,35 +1,56 @@
-# Introduction to Building a Decentralized Exchange (DEX) Pallet with the Polkadot SDK
+# Initialize the pallet project
 
-Welcome to this comprehensive guide on building a decentralized exchange pallet using the powerful Polkadot SDK.
-This tutorial aims to provide a step-by-step approach, empowering you to create a custom DEX within the Polkadot
-ecosystem.
+In this step, we will initialize the pallet project, where we can start building simple logic for the DEX pallet.
 
-It is highly recommended that you complete the tutorial
-on [Rust State Machine](https://github.com/shawntabrizi/rust-state-machine0)
-before you begin this tutorial to get an understanding of the general features on Substrate.
+1. Clone the template branch by running:
+    ```sh
+    git clone --branch template git@github.com:shawntabrizi/polkadot-sdk-tutorial-dex.git pallet-dex
+    ```
+2. Now, that we have starter pallet. Let's break down what each file does:
+- `Cargo.toml`:
+    - **[dependencies]** section: Lists the dependencies required by the pallet.
+        - codec: Specifies the encoding and decoding library used for serialization.
+        - scale-info: Provides metadata information for the pallet's types.
+        - frame-benchmarking: Allows benchmarking the pallet's performance.
+        - frame-support: Provides the core framework for building Substrate pallets.
+        - frame-system: Offers system-level functionality and types for the pallet.
+    - **[dev-dependencies]** section: Lists the dependencies required only for development and testing purposes.
+        - sp-core: Provides core primitives and types used in Substrate development.
+        - sp-io: Offers I/O functionality for Substrate pallets.
+        - sp-runtime: Provides runtime-related primitives and types.
+- `lib.rs`: This file serves as the main entry point for the Substrate pallet. It defines the pallet's structure,
+  configuration, storage, events, errors, and dispatchable functions. By organizing the pallet's code in this manner, it
+  becomes easier to understand, test, and maintain the pallet's functionality within the Substrate framework. The `lib.rs`
+  file in a Substrate pallet heavily relies on the use of macros to organize and simplify the code. Macros are a powerful feature in Rust that allow you to define reusable code templates and generate code based on those templates.
+- `mock.rs` used to create a mock runtime environment for testing the functionality of the `pallet_dex` pallet. It sets up a minimal runtime configuration that includes the necessary modules and types required for testing the pallet.
+  By creating a mock runtime, developers can write unit tests for the pallet's functionality, ensuring that it behaves as expected and catching potential issues early in the development process. The `new_test_ext` function is typically used in the test cases to initialize the mock runtime's storage before running the tests.
+- `tests.rs` contains the unit tests for the `pallet_dex` pallet. It imports the necessary modules and types from the `mock.rs` file and the pallet itself, and defines test functions to verify the pallet's behavior.
 
-The tutorial is broken into sections which cover specific learning goals for the reader, and can act as good pause
-points if you need them.
+## Useful Macro Magic
+In the context of a Substrate pallet, macros provided by the FRAME framework are extensively used to define and structure various aspects of the pallet. Here are the primary macro usages that you'll see often:
+1. Pallet Declaration:
+    - The `#[frame_support::pallet]` macro is used to declare the pallet module, indicating that it represents a FRAME pallet.
+    - This macro helps in organizing the pallet's code and provides a standard structure for defining the pallet's components.
+2. Configuration Trait:
+    - The `#[pallet::config]` macro is used to define the pallet's configuration trait, specifying the required types and constants for the pallet.
+    - This macro ensures that the pallet's configuration is structured correctly and can be easily implemented by the runtime.
+3. Storage Items:
+    - The `#[pallet::storage]` macro is used to define the pallet's storage items, such as storage values and storage maps.
+    - This macro simplifies the process of declaring storage items and generates the necessary code for accessing and modifying them.
+4. Events:
+    - The `#[pallet::event]` macro is used to define the events that the pallet can emit.
+    - It provides a clean and organized way to declare event types and their associated data.
+    - The `#[pallet::generate_deposit]` macro automatically generates the deposit_event function for emitting events, reducing boilerplate code.
+5. Errors:
+    - The `#[pallet::error]` macro is used to define the errors that the pallet can return.
+    - It helps in organizing the error variants and their associated data in a structured manner.
+6. Dispatchable Functions:
+    - The `#[pallet::call]` macro is used to define the pallet's dispatchable functions (or Calls).
+    - It provides a clear separation between the pallet's public interface and its internal implementation.
+    - The macro also handles the necessary boilerplate code for dispatching and executing the functions.
 
-All of the content of this tutorial is open source, free to access, and can be
-found [here](https://github.com/shawntabrizi/polkadot-sdk-tutorial-dex).
+By leveraging these macros, the Substrate pallet's code becomes more organized, readable, and maintainable. The macros abstract away many of the low-level details and provide a high-level, declarative way to define the pallet's components.
 
-If you have suggestions which can improve the tutorial, comments, issues and pull requests are welcome.
+Furthermore, the use of macros helps in enforcing a consistent structure across different pallets. This consistency makes it easier for developers to understand and work with multiple pallets within a Substrate runtime.
 
-Without further ado, enjoy and I hope you learn a ton!
-
-## Intro to DEXs
-
-**Decentralized exchanges (DEXs)** have gained significant popularity in the blockchain ecosystem due to their ability to facilitate trustless and permissionless trading of digital assets. One of the key components of a DEX is the concept of liquidity pools.
-
-**Liquidity pools** are essentially reserves of tokens that are locked in a smart contract to provide liquidity for trading pairs. They allow users to trade tokens without the need for a central order book or matching engine. Instead, the prices of tokens in a liquidity pool are determined by an automated market maker (AMM) algorithm based on the ratio of tokens in the pool.
-
-In a DEX, liquidity providers contribute their tokens to the liquidity pools and earn a portion of the trading fees generated by the trades that occur within the pool. This incentivizes users to supply liquidity and helps maintain a healthy trading ecosystem.
-
-To build a functional DEX pallet in Substrate, we need to implement the core functionalities of minting, burning, and swapping tokens. Here's a brief overview of each function:
-
-- **Mint**: The mint function allows liquidity providers to add tokens to a liquidity pool. When a user mints liquidity, they deposit a proportional amount of each token in the trading pair into the pool. In return, they receive liquidity tokens representing their share of the pool.
-- **Burn**: The burn function enables liquidity providers to remove their tokens from a liquidity pool. When a user burns their liquidity tokens, they redeem their share of the underlying tokens from the pool, effectively withdrawing their liquidity.
-- **Swap**: The swap function allows users to trade one token for another within a liquidity pool. When a user initiates a swap, the DEX pallet calculates the exchange rate based on the current ratio of tokens in the pool and the desired amount to be swapped. The tokens are then transferred between the user and the liquidity pool accordingly.
-
-Let's setup our pallet project first.
+Now that we've familiarized ourselves with the starter pallet code, let's dive into specifying the generic types necessary for our project.
