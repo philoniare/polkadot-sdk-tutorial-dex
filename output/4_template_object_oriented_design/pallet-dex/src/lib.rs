@@ -90,4 +90,9 @@ pub mod pallet {
 	impl<T: Config> Pallet<T> {
 		/* User Callable Functions Go Here */
 	}
+
+	/// The pallet's internal functions.
+	impl<T: Config> Pallet<T> {
+		/* Internally Callable Functions Go Here */
+	}
 }
