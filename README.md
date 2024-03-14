@@ -1,56 +1,107 @@
-# Initialize the pallet project
+# Generic Types in Substrate
 
-In this step, we will initialize the pallet project, where we can start building simple logic for the DEX pallet.
+To implement the liquidity pool functionality, we need to store and manage liquidity pools on-chain. In Substrate, we can utilize the powerful storage capabilities provided by the framework to achieve this.
 
-1. Clone the template branch by running:
-    ```sh
-    git clone --branch template git@github.com:shawntabrizi/polkadot-sdk-tutorial-dex.git pallet-dex
-    ```
-2. Now, that we have starter pallet. Let's break down what each file does:
-- `Cargo.toml`:
-    - **[dependencies]** section: Lists the dependencies required by the pallet.
-        - codec: Specifies the encoding and decoding library used for serialization.
-        - scale-info: Provides metadata information for the pallet's types.
-        - frame-benchmarking: Allows benchmarking the pallet's performance.
-        - frame-support: Provides the core framework for building Substrate pallets.
-        - frame-system: Offers system-level functionality and types for the pallet.
-    - **[dev-dependencies]** section: Lists the dependencies required only for development and testing purposes.
-        - sp-core: Provides core primitives and types used in Substrate development.
-        - sp-io: Offers I/O functionality for Substrate pallets.
-        - sp-runtime: Provides runtime-related primitives and types.
-- `lib.rs`: This file serves as the main entry point for the Substrate pallet. It defines the pallet's structure,
-  configuration, storage, events, errors, and dispatchable functions. By organizing the pallet's code in this manner, it
-  becomes easier to understand, test, and maintain the pallet's functionality within the Substrate framework. The `lib.rs`
-  file in a Substrate pallet heavily relies on the use of macros to organize and simplify the code. Macros are a powerful feature in Rust that allow you to define reusable code templates and generate code based on those templates.
-- `mock.rs` used to create a mock runtime environment for testing the functionality of the `pallet_dex` pallet. It sets up a minimal runtime configuration that includes the necessary modules and types required for testing the pallet.
-  By creating a mock runtime, developers can write unit tests for the pallet's functionality, ensuring that it behaves as expected and catching potential issues early in the development process. The `new_test_ext` function is typically used in the test cases to initialize the mock runtime's storage before running the tests.
-- `tests.rs` contains the unit tests for the `pallet_dex` pallet. It imports the necessary modules and types from the `mock.rs` file and the pallet itself, and defines test functions to verify the pallet's behavior.
+Let's first define the generic types that we'll be using. In Substrate, generic types are extensively used for various entities such as `AccountId`, `AssetId` and `BalanceOf`.
+The primary reason for using generic types is to provide flexibility and customization options for developers when
+building their blockchain runtime.
 
-## Useful Macro Magic
-In the context of a Substrate pallet, macros provided by the FRAME framework are extensively used to define and structure various aspects of the pallet. Here are the primary macro usages that you'll see often:
-1. Pallet Declaration:
-    - The `#[frame_support::pallet]` macro is used to declare the pallet module, indicating that it represents a FRAME pallet.
-    - This macro helps in organizing the pallet's code and provides a standard structure for defining the pallet's components.
-2. Configuration Trait:
-    - The `#[pallet::config]` macro is used to define the pallet's configuration trait, specifying the required types and constants for the pallet.
-    - This macro ensures that the pallet's configuration is structured correctly and can be easily implemented by the runtime.
-3. Storage Items:
-    - The `#[pallet::storage]` macro is used to define the pallet's storage items, such as storage values and storage maps.
-    - This macro simplifies the process of declaring storage items and generates the necessary code for accessing and modifying them.
-4. Events:
-    - The `#[pallet::event]` macro is used to define the events that the pallet can emit.
-    - It provides a clean and organized way to declare event types and their associated data.
-    - The `#[pallet::generate_deposit]` macro automatically generates the deposit_event function for emitting events, reducing boilerplate code.
-5. Errors:
-    - The `#[pallet::error]` macro is used to define the errors that the pallet can return.
-    - It helps in organizing the error variants and their associated data in a structured manner.
-6. Dispatchable Functions:
-    - The `#[pallet::call]` macro is used to define the pallet's dispatchable functions (or Calls).
-    - It provides a clear separation between the pallet's public interface and its internal implementation.
-    - The macro also handles the necessary boilerplate code for dispatching and executing the functions.
+Let's take a closer look at a specific example:
+```rust
+pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+```
 
-By leveraging these macros, the Substrate pallet's code becomes more organized, readable, and maintainable. The macros abstract away many of the low-level details and provide a high-level, declarative way to define the pallet's components.
+This type definition is creating an alias `AccountIdOf<T>` that represents the AccountId type defined in the
+`frame_system::Config` trait for a given runtime configuration `T`. In other words, it allows the actual type of
+`AccountId` to be determined by the runtime that implements the `frame_system::Config` trait.
 
-Furthermore, the use of macros helps in enforcing a consistent structure across different pallets. This consistency makes it easier for developers to understand and work with multiple pallets within a Substrate runtime.
+The benefits of using generic types in blockchain development, compared to using specific types, are as follows:
+1. **Flexibility and Customization**:
+    - By using generic types, Substrate allows developers to define their own types for `AccountId`, `AssetId`,
+      `BalanceOf`, and other entities based on their specific requirements.
+    - Different blockchain projects may have different needs in terms of the size, structure, and representation of
+      these types. Generic types provide the flexibility to customize them according to the project's needs.
+    - For example, one project might use a 32-byte `AccountId`, while another project might opt for a 64-byte
+      `AccountId`. With generic types, each project can define its own AccountId type without modifying the underlying
+      Substrate framework.
+2. **Interoperability and Composability**:
+    - Generic types enable better interoperability and composability between different pallets and runtime configurations.
+    - By using generic types, pallets can be designed to work with various runtime configurations without being tightly coupled to specific types.
+    - This allows for easier integration and reuse of pallets across different blockchain projects, promoting code modularity and reducing duplication.
+3. **Upgradability and Future-proofing**:
+    - As blockchain technologies evolve, the requirements for types like `AccountId`, `AssetId`, and `BalanceOf` may change over time.
+    - By using generic types, Substrate enables easier upgradability of the runtime without breaking existing code.
+    - If a project decides to change the underlying type for AccountId in the future, they can do so by updating the runtime configuration without modifying the pallets that depend on it.
+4. **Runtime Optimization**:
+    - Generic types allow for runtime optimization based on the specific types used by the runtime.
+    - The Substrate compiler can generate optimized code for the specific types defined in the runtime configuration, potentially leading to improved performance and reduced runtime overhead.
+    - In contrast, using specific types instead of generics would lead to a more rigid and inflexible system. It would require modifying the pallets and runtime code whenever a change in the underlying types is needed, making upgrades and customization more difficult and error-prone.
 
-Now that we've familiarized ourselves with the starter pallet code, let's dive into specifying the generic types necessary for our project.
+By leveraging generic types, Substrate provides a powerful and flexible framework for blockchain development. It allows developers to tailor the types to their specific needs while maintaining interoperability, composability, and upgradability. This flexibility is crucial in the rapidly evolving blockchain ecosystem, enabling projects to adapt and innovate without being constrained by fixed type definitions.
+
+Some common type aliases that are needed to interact with the rest of the blockchain have been provided for you in this section:
+```
+// Define type aliases for easier access
+pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+pub type AssetIdOf<T> = <<T as Config>::Fungibles as fungibles::Inspect<
+	<T as frame_system::Config>::AccountId,
+>>::AssetId;
+
+pub type BalanceOf<T> = <<T as Config>::NativeBalance as fungible::Inspect<
+	<T as frame_system::Config>::AccountId,
+>>::Balance;
+
+pub type AssetBalanceOf<T> = <<T as Config>::Fungibles as fungibles::Inspect<
+	<T as frame_system::Config>::AccountId,
+>>::Balance;
+```
+
+If you try to run `cargo build` or `cargo test`, you'll see the following error:
+```rust
+error[E0433]: failed to resolve: use of undeclared crate or module `fungibles`
+  --> src/lib.rs:18:54
+   |
+18 | pub type AssetIdOf<T> = <<T as Config>::Fungibles as fungibles::Inspect<
+   |                                                      ^^^^^^^^^ use of undeclared crate or module `fungibles`
+   |
+help: consider importing this module
+   |
+5  + use frame_support::traits::fungibles;
+   |
+```
+Rust is smart enough to point out how we can import those traits. Let's add those imports on top of our `lib.rs` file:
+```rust
+pub use pallet::*;
+
+// Add these imports
+use frame_support::traits::fungible;
+use frame_support::traits::fungibles;
+```
+Next, we'll need to define the `Fungibles` and `NativeBalance` inside our `#[pallet::config]`. This trait specifies the types and associated types that the pallet depends on and expects the runtime to provide. Here's how we can define the `NativeBalance`:
+```rust
+type NativeBalance: fungible::Inspect<Self::AccountId>
+    + fungible::Mutate<Self::AccountId>
+    + fungible::hold::Inspect<Self::AccountId>
+    + fungible::hold::Mutate<Self::AccountId>
+    + fungible::freeze::Inspect<Self::AccountId>
+    + fungible::freeze::Mutate<Self::AccountId>;
+```
+The above means this type provides functionality for inspecting, mutating, holding, and freezing balances associated with accounts (`Self::AccountId`).
+It provides a way to interact with the pallet [balances](https://github.com/paritytech/polkadot-sdk/tree/master/substrate/frame/balances).
+
+Now, try to define the `Fungibles` type in a similar way in order to fix the last error:
+```rust
+error[E0576]: cannot find associated type `Fungibles` in trait `Config`
+  --> src/lib.rs:20:41
+   |
+20 | pub type AssetIdOf<T> = <<T as Config>::Fungibles as fungibles::Inspect<
+   |                                         ^^^^^^^^^ not found in `Config`
+
+error[E0576]: cannot find associated type `Fungibles` in trait `Config`
+  --> src/lib.rs:28:46
+   |
+28 | pub type AssetBalanceOf<T> = <<T as Config>::Fungibles as fungibles::Inspect<
+   |                                              ^^^^^^^^^ not found in `Config`
+```
+The `Fungibles` type needs to implement the trains from pallet [assets](https://github.com/paritytech/polkadot-sdk/tree/master/substrate/frame/assets).
+
