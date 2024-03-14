@@ -94,6 +94,21 @@ pub mod pallet {
 
         /// Overflow occurred when adding to the total liquidity.
         LiquidityOverflow,
+
+        /// The asset being swapped in is not part of the specified trading pair.
+        InvalidAssetIn,
+
+        /// The asset being swapped out is not part of the specified trading pair.
+        InvalidAssetOut,
+
+        /// The reserves for the asset being swapped out is not sufficient.
+        InsufficientAmountOut,
+
+        /// Attempted to perform an operation that resulted in an overflow
+        ArithmeticOverflow,
+
+        /// Attempted to divide by zero
+        DivisionByZero,
     }
 
     /// The pallet's dispatchable functions ([`Call`]s).
