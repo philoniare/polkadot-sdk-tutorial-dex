@@ -1,50 +1,91 @@
-## Solution for `burn_liquidity`
+## Swap Functionality
 
-There's lots of ways that this can be implemented. Here's a sample implementation:
+Finally, we'll implement the most used `swap` functionality. The `swap` function in a decentralized exchange (DEX)
+allows users to exchange one asset for another within a liquidity pool. It enables users to trade assets without the
+need for a centralized order book or matching engine. Instead, the swap is facilitated by the liquidity pool, which
+determines the exchange rate based on the relative reserves of the assets in the pool.
+
+Here's a brief overview of its functionality:
+
+- The user specifies the asset they want to swap (asset in), the amount they want to swap (amount in), the asset they
+  want to receive (asset out), and the minimum amount of the asset out they are willing to accept (min amount out).
+- The DEX calculates the amount of asset out that the user will receive based on the current reserves of the assets in
+  the liquidity pool and the specified amount in.
+- If the calculated amount out is greater than or equal to the specified min amount out, the swap is executed.
+- The DEX updates the reserves of the liquidity pool by adding the amount in of the asset in and subtracting the
+  calculated amount out of the asset out.
+- The user receives the calculated amount out of the asset out in exchange for the amount in of the asset in.
+
+Since we already have the `swap` implemented in the liquidity pool, we can refer to it when defining the extrinsic call:
 
 ```rust
-#[pallet::call_index(2)]
+#[pallet::call_index(3)]
 #[pallet::weight(Weight::default())]
-pub fn burn_liquidity(
+pub fn swap(
     origin: OriginFor<T>,
-    asset_a: AssetIdOf<T>,
-    asset_b: AssetIdOf<T>,
-    liquidity_burned: AssetBalanceOf<T>,
-    min_amount_a: AssetBalanceOf<T>,
-    min_amount_b: AssetBalanceOf<T>,
+    asset_in: AssetIdOf<T>,
+    asset_out: AssetIdOf<T>,
+    amount_in: AssetBalanceOf<T>,
+    min_amount_out: AssetBalanceOf<T>,
 ) -> DispatchResult {
     let sender = ensure_signed(origin)?;
 
-    let trading_pair = (asset_a, asset_b);
+    let trading_pair = (asset_in, asset_out);
 
     let mut liquidity_pool =
         LiquidityPools::<T>::get(trading_pair).ok_or(Error::<T>::LiquidityPoolNotFound)?;
 
-    // Calculate the amounts of tokens to withdraw based on the liquidity burned and
-    // the current reserves
-    let amounts_out = Self::calculate_amounts_out(
-        liquidity_burned,
-        (liquidity_pool.reserves.0, liquidity_pool.reserves.1),
-        liquidity_pool.total_liquidity,
-    )?;
-    ensure!(
-        amounts_out.0 >= min_amount_a && amounts_out.1 >= min_amount_b,
-        Error::<T>::InsufficientAmountsOut
-    );
+    let amount_out = liquidity_pool.swap(asset_in, amount_in, asset_out, min_amount_out)?;
 
-    // Burn the liquidity tokens from the sender
-    Self::burn_liquidity_tokens(&sender, liquidity_pool.liquidity_token, liquidity_burned)?;
+    Self::transfer_asset_from_user(&sender, asset_in, amount_in)?;
+    Self::transfer_asset_to_user(&sender, asset_out, amount_out)?;
 
-    // Update the liquidity pool reserves and total liquidity
-    liquidity_pool.burn(liquidity_burned, amounts_out)?;
-    LiquidityPools::<T>::insert(trading_pair, liquidity_pool);
+    LiquidityPools::<T>::insert(&trading_pair, liquidity_pool);
 
-    Self::deposit_event(Event::LiquidityBurned(
-        sender,
-        trading_pair,
-        liquidity_burned,
+    Self::deposit_event(Event::Swapped(
+        sender, asset_in, amount_in, asset_out, amount_out,
     ));
 
     Ok(())
 }
 ```
+
+As you can see above, we've defined the `transfer_asset_from_user` and `transfer_asset_to_user` methods to help us
+transfer the assets:
+
+```rust
+fn transfer_asset_from_user(
+    user: &AccountIdOf<T>,
+    asset_id: AssetIdOf<T>,
+    amount: AssetBalanceOf<T>,
+) -> DispatchResult {
+    T::Fungibles::transfer(
+        asset_id,
+        user,
+        &Self::pallet_account_id(),
+        amount,
+        Preservation::Expendable,
+    )?;
+    Ok(())
+}
+
+fn transfer_asset_to_user(
+    user: &AccountIdOf<T>,
+    asset_id: AssetIdOf<T>,
+    amount: AssetBalanceOf<T>,
+) -> DispatchResult {
+    T::Fungibles::transfer(
+        asset_id,
+        &Self::pallet_account_id(),
+        user,
+        amount,
+        Preservation::Expendable,
+    )?;
+    Ok(())
+}
+```
+
+With our current implementation, what happens when we have a liquidity pool of `(DOT, USDC)` and a user requests to swap
+`(USDC, DOT)`? They would be routed to a pool that doesn't exist, so we'll need to add some logic to make sure that
+we route users to the same liquidity pool regardless of the order of assets as long as it's the same pair. See if you
+implement it.

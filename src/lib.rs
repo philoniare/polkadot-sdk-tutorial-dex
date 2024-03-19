@@ -115,6 +115,21 @@ pub mod pallet {
             (AssetIdOf<T>, AssetIdOf<T>),
             AssetBalanceOf<T>,
         ),
+
+        /// Assets swapped.
+        /// Parameters:
+        /// - `T::AccountId`: The account ID of the user who performed the swap.
+        /// - `T::AssetId`: The ID of the asset that was swapped (sold).
+        /// - `T::Balance`: The amount of the asset that was swapped (sold).
+        /// - `T::AssetId`: The ID of the asset that was received (bought).
+        /// - `T::Balance`: The amount of the asset that was received (bought).
+        Swapped(
+            AccountIdOf<T>,
+            AssetIdOf<T>,
+            AssetBalanceOf<T>,
+            AssetIdOf<T>,
+            AssetBalanceOf<T>,
+        ),
     }
 
     /// Errors that can be returned by this pallet.
@@ -300,6 +315,36 @@ pub mod pallet {
 
             Ok(())
         }
+
+        #[pallet::call_index(3)]
+        #[pallet::weight(Weight::default())]
+        pub fn swap(
+            origin: OriginFor<T>,
+            asset_in: AssetIdOf<T>,
+            asset_out: AssetIdOf<T>,
+            amount_in: AssetBalanceOf<T>,
+            min_amount_out: AssetBalanceOf<T>,
+        ) -> DispatchResult {
+            let sender = ensure_signed(origin)?;
+
+            let trading_pair = (asset_in, asset_out);
+
+            let mut liquidity_pool =
+                LiquidityPools::<T>::get(trading_pair).ok_or(Error::<T>::LiquidityPoolNotFound)?;
+
+            let amount_out = liquidity_pool.swap(asset_in, amount_in, asset_out, min_amount_out)?;
+
+            Self::transfer_asset_from_user(&sender, asset_in, amount_in)?;
+            Self::transfer_asset_to_user(&sender, asset_out, amount_out)?;
+
+            LiquidityPools::<T>::insert(&trading_pair, liquidity_pool);
+
+            Self::deposit_event(Event::Swapped(
+                sender, asset_in, amount_in, asset_out, amount_out,
+            ));
+
+            Ok(())
+        }
     }
 
     /// The pallet's internal functions.
@@ -352,18 +397,20 @@ pub mod pallet {
             Ok(sqrt_product)
         }
 
+        fn pallet_account_id() -> T::AccountId {
+            T::PalletId::get().into_account_truncating()
+        }
+
         fn transfer_asset_to_pool(
             sender: &AccountIdOf<T>,
             asset_id: AssetIdOf<T>,
             amount: AssetBalanceOf<T>,
         ) -> DispatchResult {
-            let pool_account_id = T::PalletId::get().into_account_truncating();
-
             // Transfer the asset from the sender to the pool account
             T::Fungibles::transfer(
                 asset_id,
                 sender,
-                &pool_account_id,
+                &Self::pallet_account_id(),
                 amount,
                 Preservation::Expendable,
             )?;
@@ -427,6 +474,36 @@ pub mod pallet {
                 .ok_or(Error::<T>::DivisionByZero)?;
 
             Ok((amount_a, amount_b))
+        }
+
+        fn transfer_asset_from_user(
+            user: &AccountIdOf<T>,
+            asset_id: AssetIdOf<T>,
+            amount: AssetBalanceOf<T>,
+        ) -> DispatchResult {
+            T::Fungibles::transfer(
+                asset_id,
+                user,
+                &Self::pallet_account_id(),
+                amount,
+                Preservation::Expendable,
+            )?;
+            Ok(())
+        }
+
+        fn transfer_asset_to_user(
+            user: &AccountIdOf<T>,
+            asset_id: AssetIdOf<T>,
+            amount: AssetBalanceOf<T>,
+        ) -> DispatchResult {
+            T::Fungibles::transfer(
+                asset_id,
+                &Self::pallet_account_id(),
+                user,
+                amount,
+                Preservation::Expendable,
+            )?;
+            Ok(())
         }
     }
 }
