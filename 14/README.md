@@ -1,227 +1,34 @@
-# Extrinsic Calls
+# Safe Math
 
-Now, that we have the necessary methods implemented in our `liquidity_pool`. Let's define pallet calls that will call
-these methods.
+In Substrate runtime pallet development, using safe math is crucial to ensure the stability and security of your
+blockchain network. When dealing with arithmetic operations, especially those involving user input or storage values,
+it's important to handle potential overflow or underflow situations gracefully.
 
-### What are pallet calls?
+### Why do we need to use Safe Math?
 
-Pallet calls are the entry points for interacting with a pallet's functionality from the outside world. They define the
-public API of the pallet and allow users or other pallets to trigger specific actions or updates within the pallet's
-logic.
+If a panic occurs within your runtime pallet due to an arithmetic overflow or underflow, it can lead to severe
+consequences:
 
-In Substrate, pallet calls are defined using the `#[pallet::call]` attribute macro. This macro is used to define a Rust
-trait that represents the dispatchable functions of the pallet.
+- **Node Crash**: A panic in the runtime can cause the node to crash, leading to downtime and disrupting the
+  availability of your blockchain network.
+- **Inconsistent State**: If a panic occurs during a state update, it can leave your blockchain in an inconsistent
+  state, corrupting the data and compromising the integrity of your system.
+- **Security Vulnerabilities**: Panics caused by arithmetic issues can be exploited by malicious actors to perform
+  attacks, such as draining funds or manipulating the system's behavior.
 
-Necessary Functionalities of Pallet Calls:
+To mitigate these risks, Rust provides safe math utilities that handle arithmetic operations in a safe manner. The two
+commonly used options for safe math are:
 
-#### 1. Authorization and Validation:
-
-- Pallet calls should perform necessary authorization checks to ensure that the caller has the required permissions to
-  execute the function.
-- The origin parameter represents the source of the call (e.g., a user account, another pallet) and can be used for
-  authentication and authorization purposes.
-- The pallet should validate the input parameters to ensure they meet the expected constraints and requirements.
-
-#### 2. State Modification:
-
-- Pallet calls often involve modifying the pallet's storage items or interacting with other pallets' storage.
-- The function should perform the necessary storage updates, such as inserting, updating, or removing data from storage
-  maps or values.
-- It's crucial to handle storage interactions safely and consistently, considering edge cases and potential conflicts.
-
-#### 3. Event Emission:
-
-- Pallet calls can emit events to notify users or other pallets about important actions or state changes.
-- Events provide transparency and allow external entities to react to specific occurrences within the pallet.
-- The pallet should define an event type using the `#[pallet::event]` attribute and emit relevant events using
-  the `Self::deposit_event()` function.
-
-#### 4. Error Handling:
-
-- Pallet calls should handle potential errors that may occur during execution.
-- The pallet should define a comprehensive set of error variants using the `#[pallet::error]` attribute.
-- Functions should return a `DispatchResult` type, which is either `Ok(())` for success or `Err(Error::<T>::SomeError)`
-  for specific error cases.
-
-#### 5. Weight Annotation:
-
-- Each pallet call should have a weight annotation that specifies the expected execution cost of the function.
-- The weight represents the computational resources required to execute the call and is used by the Substrate runtime to
-  manage and prioritize transactions.
-- The `#[pallet::weight()]` attribute is used to assign a weight to a pallet call.
-
-#### 6. Documentation and Comments:
-
-- Pallet calls should be well-documented with clear explanations of their purpose, parameters, and expected behavior.
-- Use comments and doc comments (`///`) to provide detailed information about each call, including any prerequisites,
-  side effects, or important considerations.
-
-#### 7. Testing:
-
-- Pallet calls should be thoroughly tested to ensure their correctness and robustness.
-- Write unit tests to cover different scenarios, including success cases, error cases, and edge cases.
-- Use the `#[test]` attribute to define test functions and the `assert_ok!()`, `assert_noop!()`, and `assert_err!()`
-  macros to make assertions about the expected behavior.
-
-By following these guidelines and implementing the necessary functionalities, you can create well-structured and
-reliable pallet calls that provide a clear and secure interface for interacting with your pallet's functionality.
-
-Let's get started by implementing the call to create a liquidity pool:
-
-```rust
-#[pallet::call_index(0)]
-#[pallet::weight(Weight::default())]
-pub fn create_liquidity_pool(
-    origin: OriginFor<T>,
-    asset_a: AssetIdOf<T>,
-    asset_b: AssetIdOf<T>,
-    liquidity_token: AssetIdOf<T>,
-) -> DispatchResult {
-    // ensure that the origin has been signed
-    let sender = ensure_signed(origin)?;
-
-    let trading_pair = (asset_a, asset_b);
-    ensure!(
-                !LiquidityPools::<T>::contains_key(trading_pair),
-                Error::<T>::LiquidityPoolAlreadyExists
-            );
-
-    // Create a new liquidity pool
-    let liquidity_pool = LiquidityPool {
-        assets: trading_pair,
-        reserves: (Zero::zero(), Zero::zero()),
-        total_liquidity: Zero::zero(),
-        liquidity_token,
-    };
-
-    // Insert the new liquidity pool into the storage
-    LiquidityPools::<T>::insert(trading_pair, liquidity_pool);
-
-    // Log an event indicating that the pool was created
-    Self::deposit_event(Event::LiquidityPoolCreated(sender, trading_pair));
-
-    Ok(())
-}
-```
-
-Make sure to update your pallet's `Error` enum to include the `LiquidityPoolAlreadyExists` variant, and add
-the `LiquidityPoolCreated` variant to your Event enum.
-In a similar fashion, we could implement the call to `mint_liquidity`. We still have some parts that we have not
-discussed yet, but don't worry, we'll be implementing those in later modules.
-Here's how we can implement the `mint_liqudity` call:
-
-```rust
-#[pallet::call_index(1)]
-#[pallet::weight(Weight::default())]
-pub fn mint_liquidity(
-    origin: OriginFor<T>,
-    asset_a: AssetIdOf<T>,
-    asset_b: AssetIdOf<T>,
-    amount_a: AssetBalanceOf<T>,
-    amount_b: AssetBalanceOf<T>,
-    min_liquidity: AssetBalanceOf<T>,
-) -> DispatchResult {
-    let sender = ensure_signed(origin)?;
-
-    let trading_pair = (asset_a, asset_b);
-
-    // Get the liquidity pool from storage
-    let mut liquidity_pool =
-        LiquidityPools::<T>::get(&trading_pair).ok_or(Error::<T>::LiquidityPoolNotFound)?;
-
-    // Calculate the liquidity minted based on the provided amounts and the current reserves
-    let liquidity_minted = Self::calculate_liquidity_minted(
-        (amount_a, amount_b),
-        (liquidity_pool.reserves.0, liquidity_pool.reserves.1),
-        liquidity_pool.total_liquidity,
-    )?;
-
-    // Ensure that the liquidity minted is greater than or equal to the minimum liquidity specified
-    ensure!(
-                liquidity_minted >= min_liquidity,
-                Error::<T>::InsufficientLiquidityMinted
-            );
-
-    // Transfer the assets from the sender to the liquidity pool
-    Self::transfer_asset_to_pool(&sender, trading_pair.0, amount_a)?;
-    Self::transfer_asset_to_pool(&sender, trading_pair.1, amount_b)?;
-
-    // Mint liquidity tokens to the sender
-    Self::mint_liquidity_tokens(&sender, liquidity_pool.liquidity_token, liquidity_minted)?;
-
-    // Update the liquidity pool reserves and total liquidity using the `mint` method
-    liquidity_pool.mint((amount_a, amount_b), liquidity_minted)?;
-
-    // Update the liquidity pool in storage
-    LiquidityPools::<T>::insert(&trading_pair, liquidity_pool);
-
-    // Emit the LiquidityMinted event
-    Self::deposit_event(Event::LiquidityMinted(
-        sender,
-        trading_pair,
-        liquidity_minted,
-    ));
-
-    Ok(())
-}
-```
-
-We've abstracted away some functionality to helper methods. For example, the `calculate_liquidity_minted` function,
-which calculates the amount of liquidity tokens to be minted based on the provided asset amounts and the current state
-of the liquidity pool. When total liquidity is non-zero, `liquidity_minted` is calculated as
-`(amount * total_liquidity) / reserve` for each asset. If there's no existing liquidity it calculates the geometric
-mean:
-
-```rust
-impl<T: Config> Pallet<T> {
-    fn calculate_liquidity_minted(
-        amounts: (AssetBalanceOf<T>, AssetBalanceOf<T>),
-        reserves: (AssetBalanceOf<T>, AssetBalanceOf<T>),
-        total_liquidity: AssetBalanceOf<T>,
-    ) -> Result<AssetBalanceOf<T>, DispatchError> {
-        let (amount_a, amount_b) = amounts;
-        let (reserve_a, reserve_b) = reserves;
-
-        ensure!(
-                !amount_a.is_zero() && !amount_b.is_zero(),
-                Error::<T>::InsufficientLiquidityMinted
-            );
-
-        if total_liquidity.is_zero() {
-            // If the liquidity pool is empty, the minted liquidity is the geometric mean of the amounts
-            let liquidity_minted = Self::geometric_mean(amount_a, amount_b)?;
-            Ok(liquidity_minted)
-        } else {
-            // If the liquidity pool is not empty, calculate the minted liquidity proportionally
-            let liquidity_minted_a = amount_a
-                .checked_mul(&total_liquidity)
-                .ok_or(Error::<T>::ArithmeticOverflow)?
-                .checked_div(&reserve_a)
-                .ok_or(Error::<T>::DivisionByZero)?;
-
-            let liquidity_minted_b = amount_b
-                .checked_mul(&total_liquidity)
-                .ok_or(Error::<T>::ArithmeticOverflow)?
-                .checked_div(&reserve_b)
-                .ok_or(Error::<T>::DivisionByZero)?;
-
-            // Choose the smaller minted liquidity to maintain the desired asset ratio
-            let liquidity_minted = sp_std::cmp::min(liquidity_minted_a, liquidity_minted_b);
-            Ok(liquidity_minted)
-        }
-    }
-
-    fn geometric_mean(
-        amount_a: AssetBalanceOf<T>,
-        amount_b: AssetBalanceOf<T>,
-    ) -> Result<AssetBalanceOf<T>, DispatchError> {
-        let sqrt_product = (amount_a
-            .checked_mul(&amount_b)
-            .ok_or(Error::<T>::ArithmeticOverflow)?)
-            .integer_sqrt();
-        Ok(sqrt_product)
-    }
-}
-```
-
-Can you implement the call for burning the liquidity `burn_liquidity` next?
+- `saturating_sub`: This method performs a saturating subtraction. If the result of the subtraction would be negative,
+  it returns zero instead of panicking. The benefit of using saturating_sub is that it prevents underflow and ensures
+  that the result is always within the valid range. However, it's important to note that it silently returns zero if the
+  subtraction would result in a negative value, which may not always be the desired behavior.
+- `checked_sub`: This method performs a checked subtraction. It returns an `Option` type, where `Some(result)` is
+  returned if the subtraction is successful, and `None` is returned if an overflow or underflow occurs. The benefit of
+  using `checked_sub` is that it allows you to explicitly handle the case when the subtraction fails.
+  You can choose to return an `Error` with a specific error message or take alternative actions based on your
+  requirements. However, it requires additional error handling logic compared to `saturating_sub`.
+  The choice between `saturating_sub` and `checked_sub` depends on your specific use case and error handling strategy.
+  If you want to ensure that the result is always within the valid range and silently handle underflow by returning
+  zero, `saturating_sub` is a good choice. If you want to explicitly handle the case when the subtraction fails and have
+  more control over the error handling, `checked_sub` is a better option.

@@ -82,34 +82,7 @@ pub mod pallet {
 
     /// Errors that can be returned by this pallet.
     #[pallet::error]
-    pub enum Error<T> {
-        /// Insufficient liquidity available in the pool.
-        InsufficientLiquidity,
-
-        /// Insufficient reserves available in the pool for the requested operation.
-        InsufficientReserves,
-
-        /// Overflow occurred when adding to the reserve balance.
-        ReserveOverflow,
-
-        /// Overflow occurred when adding to the total liquidity.
-        LiquidityOverflow,
-
-        /// The asset being swapped in is not part of the specified trading pair.
-        InvalidAssetIn,
-
-        /// The asset being swapped out is not part of the specified trading pair.
-        InvalidAssetOut,
-
-        /// The reserves for the asset being swapped out is not sufficient.
-        InsufficientAmountOut,
-
-        /// Attempted to perform an operation that resulted in an overflow
-        ArithmeticOverflow,
-
-        /// Attempted to divide by zero
-        DivisionByZero,
-    }
+    pub enum Error<T> {/* Pallet Error Variants Go Here */}
 
     /// The pallet's dispatchable functions ([`Call`]s).
     #[pallet::call]

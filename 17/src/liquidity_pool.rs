@@ -1,9 +1,7 @@
 use super::*;
-use frame_support::pallet_prelude::*;
 use sp_runtime::traits::{
-    CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, SaturatedConversion, Zero,
+    CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, SaturatedConversion, Saturating, Zero,
 };
-use sp_runtime::Permill;
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 #[scale_info(skip_type_params(T))]
@@ -12,6 +10,7 @@ pub struct LiquidityPool<T: Config> {
     pub reserves: (AssetBalanceOf<T>, AssetBalanceOf<T>),
     pub total_liquidity: AssetBalanceOf<T>,
     pub liquidity_token: AssetIdOf<T>,
+    _marker: PhantomData<T>,
 }
 
 impl<T: Config> LiquidityPool<T> {
@@ -129,22 +128,19 @@ impl<T: Config> LiquidityPool<T> {
             Error::<T>::InsufficientLiquidity
         );
 
-        // Define the swap fee as a Permill value (0.3%)
-        let swap_fee = Permill::from_perthousand(3);
-
-        // Calculate the input amount after deducting the swap fee
-        let amount_in_after_fee = amount_in
-            .checked_sub(&swap_fee.mul_floor(amount_in))
+        // Calculate the input amount with the swap fee (0.3%) by multiplying by 997 (99.7%)
+        let amount_in_with_fee = amount_in
+            .checked_mul(&AssetBalanceOf::<T>::saturated_from(997u128))
             .ok_or(Error::<T>::ArithmeticOverflow)?;
-
         // Calculate the numerator of the output amount formula
-        let numerator = amount_in_after_fee
+        let numerator = amount_in_with_fee
             .checked_mul(&reserve_out)
             .ok_or(Error::<T>::ArithmeticOverflow)?;
-
         // Calculate the denominator of the output amount formula
         let denominator = reserve_in
-            .checked_add(&amount_in_after_fee)
+            .checked_mul(&AssetBalanceOf::<T>::saturated_from(1000u128))
+            .ok_or(Error::<T>::ArithmeticOverflow)?
+            .checked_add(&amount_in_with_fee)
             .ok_or(Error::<T>::ArithmeticOverflow)?;
 
         // Perform integer division to obtain the final output amount
