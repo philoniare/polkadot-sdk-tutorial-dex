@@ -2,8 +2,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 // Re-export pallet items so that they can be accessed from the crate namespace.
-use frame_support::traits::fungible;
-use frame_support::traits::fungibles;
 pub use pallet::*;
 
 // FRAME pallets require their own "mock runtimes" to be able to run unit tests. This module
@@ -14,20 +12,6 @@ mod mock;
 // This module contains the unit tests for this pallet.
 #[cfg(test)]
 mod tests;
-
-// Define type aliases for easier access
-pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
-pub type AssetIdOf<T> = <<T as Config>::Fungibles as fungibles::Inspect<
-    <T as frame_system::Config>::AccountId,
->>::AssetId;
-
-pub type BalanceOf<T> = <<T as Config>::NativeBalance as fungible::Inspect<
-    <T as frame_system::Config>::AccountId,
->>::Balance;
-
-pub type AssetBalanceOf<T> = <<T as Config>::Fungibles as fungibles::Inspect<
-    <T as frame_system::Config>::AccountId,
->>::Balance;
 
 // All pallet logic is defined in its own module and must be annotated by the `pallet` attribute.
 #[frame_support::pallet]
@@ -47,16 +31,6 @@ pub mod pallet {
     pub trait Config: frame_system::Config {
         /// The overarching runtime event type.
         type RuntimeEvent: From<Event<Self>> + IsType<<Self as frame_system::Config>::RuntimeEvent>;
-
-        // Type to access the Balances Pallet
-        type NativeBalance: fungible::Inspect<Self::AccountId>
-            + fungible::Mutate<Self::AccountId>
-            + fungible::hold::Inspect<Self::AccountId>
-            + fungible::hold::Mutate<Self::AccountId>
-            + fungible::freeze::Inspect<Self::AccountId>
-            + fungible::freeze::Mutate<Self::AccountId>;
-
-        // TODO: Define the Fungibles type here
     }
 
     /// A storage item for this pallet.

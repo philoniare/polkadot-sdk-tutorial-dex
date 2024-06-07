@@ -82,13 +82,7 @@ pub mod pallet {
 
     /// Errors that can be returned by this pallet.
     #[pallet::error]
-    pub enum Error<T> {
-        /// Insufficient liquidity available in the pool.
-        InsufficientLiquidity,
-
-        /// Insufficient reserves available in the pool for the requested operation.
-        InsufficientReserves,
-    }
+    pub enum Error<T> {/* Pallet Error Variants Go Here */}
 
     /// The pallet's dispatchable functions ([`Call`]s).
     #[pallet::call]
