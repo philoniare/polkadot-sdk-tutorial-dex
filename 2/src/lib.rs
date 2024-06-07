@@ -4,7 +4,7 @@
 // Re-export pallet items so that they can be accessed from the crate namespace.
 pub use pallet::*;
 
-// FRAME pallets require their own "mock runtimes" to be able to run unit tests. This module
+// FRAME pallet s require their own "mock runtimes" to be able to run unit tests. This module
 // contains a mock runtime specific for testing this pallet's functionality.
 #[cfg(test)]
 mod mock;

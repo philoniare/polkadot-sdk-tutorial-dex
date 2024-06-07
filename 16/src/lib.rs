@@ -193,7 +193,7 @@ pub mod pallet {
             // ensure that the origin has been signed
             let sender = ensure_signed(origin)?;
 
-            let trading_pair = Self::get_trading_pair(asset_a, asset_b);
+            let trading_pair = (asset_a, asset_b);
             ensure!(
                 !LiquidityPools::<T>::contains_key(trading_pair),
                 Error::<T>::LiquidityPoolAlreadyExists
@@ -228,7 +228,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let sender = ensure_signed(origin)?;
 
-            let trading_pair = Self::get_trading_pair(asset_a, asset_b);
+            let trading_pair = (asset_a, asset_b);
 
             // Get the liquidity pool from storage
             let mut liquidity_pool =
@@ -283,7 +283,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let sender = ensure_signed(origin)?;
 
-            let trading_pair = Self::get_trading_pair(asset_a, asset_b);
+            let trading_pair = (asset_a, asset_b);
 
             let mut liquidity_pool =
                 LiquidityPools::<T>::get(trading_pair).ok_or(Error::<T>::LiquidityPoolNotFound)?;
@@ -504,18 +504,6 @@ pub mod pallet {
                 Preservation::Expendable,
             )?;
             Ok(())
-        }
-
-        // Helper function to get the consistently ordered trading pair
-        fn get_trading_pair(
-            asset_a: AssetIdOf<T>,
-            asset_b: AssetIdOf<T>,
-        ) -> (AssetIdOf<T>, AssetIdOf<T>) {
-            if asset_a < asset_b {
-                (asset_a, asset_b)
-            } else {
-                (asset_b, asset_a)
-            }
         }
     }
 }

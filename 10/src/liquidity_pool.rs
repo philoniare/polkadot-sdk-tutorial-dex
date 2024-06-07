@@ -4,7 +4,7 @@ use codec::{Decode, Encode, MaxEncodedLen};
 use frame_support::dispatch::TypeInfo;
 use frame_support::pallet_prelude::DispatchResult;
 use frame_support::RuntimeDebug;
-use sp_runtime::traits::{CheckedAdd, CheckedSub};
+use sp_runtime::traits::CheckedSub;
 use std::marker::PhantomData;
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
@@ -23,22 +23,10 @@ impl<T: Config> LiquidityPool<T> {
         &mut self,
         amounts: (AssetBalanceOf<T>, AssetBalanceOf<T>),
         liquidity_minted: AssetBalanceOf<T>,
-    ) -> DispatchResult {
-        self.reserves.0 = self
-            .reserves
-            .0
-            .checked_add(&amounts.0)
-            .ok_or(Error::<T>::ReserveOverflow)?;
-        self.reserves.1 = self
-            .reserves
-            .1
-            .checked_add(&amounts.1)
-            .ok_or(Error::<T>::ReserveOverflow)?;
-        self.total_liquidity = self
-            .total_liquidity
-            .checked_add(&liquidity_minted)
-            .ok_or(Error::<T>::LiquidityOverflow)?;
-        Ok(())
+    ) {
+        self.reserves.0 = self.reserves.0 + amounts.0;
+        self.reserves.1 = self.reserves.1 + amounts.1;
+        self.total_liquidity = self.total_liquidity + liquidity_minted;
     }
 
     // Function to burn liquidity tokens and update reserves

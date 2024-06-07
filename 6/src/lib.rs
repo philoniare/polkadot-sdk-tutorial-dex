@@ -78,10 +78,7 @@ pub mod pallet {
     pub type LiquidityPools<T: Config> =
         StorageMap<_, Blake2_128Concat, (AssetIdOf<T>, AssetIdOf<T>), LiquidityPool<T>>;
 
-    /// Storage map for storing mapping of liquidity token to asset pair
-    #[pallet::storage]
-    pub type LiquidityTokens<T: Config> =
-        StorageMap<_, Blake2_128Concat, AssetIdOf<T>, (AssetIdOf<T>, AssetIdOf<T>), ValueQuery>;
+    // TODO: Define LiquidityTokens storage
 
     /// Events that functions in this pallet can emit.
     #[pallet::event]

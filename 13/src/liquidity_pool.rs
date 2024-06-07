@@ -1,7 +1,7 @@
 use super::*;
 use frame_support::pallet_prelude::*;
 use sp_runtime::traits::{
-    CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, SaturatedConversion, Zero,
+    CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, SaturatedConversion, Saturating, Zero,
 };
 use sp_runtime::Permill;
 
@@ -12,6 +12,7 @@ pub struct LiquidityPool<T: Config> {
     pub reserves: (AssetBalanceOf<T>, AssetBalanceOf<T>),
     pub total_liquidity: AssetBalanceOf<T>,
     pub liquidity_token: AssetIdOf<T>,
+    _marker: PhantomData<T>,
 }
 
 impl<T: Config> LiquidityPool<T> {

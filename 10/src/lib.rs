@@ -88,12 +88,6 @@ pub mod pallet {
 
         /// Insufficient reserves available in the pool for the requested operation.
         InsufficientReserves,
-
-        /// Overflow occurred when adding to the reserve balance.
-        ReserveOverflow,
-
-        /// Overflow occurred when adding to the total liquidity.
-        LiquidityOverflow,
     }
 
     /// The pallet's dispatchable functions ([`Call`]s).

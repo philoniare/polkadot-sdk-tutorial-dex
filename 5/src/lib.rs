@@ -2,10 +2,9 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 // Re-export pallet items so that they can be accessed from the crate namespace.
-use frame_support::pallet_prelude::*;
 use frame_support::traits::fungible;
 use frame_support::traits::fungibles;
-use pallet::*;
+pub use pallet::*;
 
 // FRAME pallets require their own "mock runtimes" to be able to run unit tests. This module
 // contains a mock runtime specific for testing this pallet's functionality.
@@ -29,16 +28,6 @@ pub type BalanceOf<T> = <<T as Config>::NativeBalance as fungible::Inspect<
 pub type AssetBalanceOf<T> = <<T as Config>::Fungibles as fungibles::Inspect<
     <T as frame_system::Config>::AccountId,
 >>::Balance;
-
-#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
-#[scale_info(skip_type_params(T))]
-pub struct LiquidityPool<T: Config> {
-    pub assets: (AssetIdOf<T>, AssetIdOf<T>),
-    pub reserves: (AssetBalanceOf<T>, AssetBalanceOf<T>),
-    pub total_liquidity: AssetBalanceOf<T>,
-    pub liquidity_token: AssetIdOf<T>,
-    _marker: PhantomData<T>,
-}
 
 // All pallet logic is defined in its own module and must be annotated by the `pallet` attribute.
 #[frame_support::pallet]
@@ -73,12 +62,13 @@ pub mod pallet {
             + fungibles::Create<Self::AccountId>;
     }
 
-    /// A storage map for storing liquidity pools
+    /// A storage item for this pallet.
     #[pallet::storage]
-    pub type LiquidityPools<T: Config> =
-        StorageMap<_, Blake2_128Concat, (AssetIdOf<T>, AssetIdOf<T>), LiquidityPool<T>>;
+    pub type SomeItem<T> = StorageValue<_, u32>;
 
-    // TODO: Define LiquidityTokens storage
+    /// A storage map for this pallet.
+    #[pallet::storage]
+    pub type SomeMap<T> = StorageMap<_, Blake2_128Concat, u32, u32>;
 
     /// Events that functions in this pallet can emit.
     #[pallet::event]
