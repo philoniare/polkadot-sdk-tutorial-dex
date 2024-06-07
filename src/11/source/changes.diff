@@ -1,0 +1,61 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 068d20f..02e8bba 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -82,7 +82,13 @@ pub mod pallet {
+ 
+     /// Errors that can be returned by this pallet.
+     #[pallet::error]
+-    pub enum Error<T> {/* Pallet Error Variants Go Here */}
++    pub enum Error<T> {
++        /// Insufficient liquidity available in the pool.
++        InsufficientLiquidity,
++
++        /// Insufficient reserves available in the pool for the requested operation.
++        InsufficientReserves,
++    }
+ 
+     /// The pallet's dispatchable functions ([`Call`]s).
+     #[pallet::call]
+diff --git a/src/liquidity_pool.rs b/src/liquidity_pool.rs
+index 2d88689..20ef1a1 100644
+--- a/src/liquidity_pool.rs
++++ b/src/liquidity_pool.rs
+@@ -1,8 +1,10 @@
+-use crate::pallet::Config;
++use crate::pallet::{Config, Error};
+ use crate::{AssetBalanceOf, AssetIdOf};
+ use codec::{Decode, Encode, MaxEncodedLen};
+ use frame_support::dispatch::TypeInfo;
++use frame_support::pallet_prelude::DispatchResult;
+ use frame_support::RuntimeDebug;
++use sp_runtime::traits::CheckedSub;
+ use std::marker::PhantomData;
+ 
+ #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+@@ -32,9 +34,21 @@ impl<T: Config> LiquidityPool<T> {
+         &mut self,
+         liquidity_burned: AssetBalanceOf<T>,
+         amounts_out: (AssetBalanceOf<T>, AssetBalanceOf<T>),
+-    ) {
+-        self.reserves.0 = self.reserves.0 - amounts_out.0;
+-        self.reserves.1 = self.reserves.1 - amounts_out.1;
+-        self.total_liquidity = self.total_liquidity - liquidity_burned;
++    ) -> DispatchResult {
++        self.reserves.0 = self
++            .reserves
++            .0
++            .checked_sub(&amounts_out.0)
++            .ok_or(Error::<T>::InsufficientReserves)?;
++        self.reserves.1 = self
++            .reserves
++            .1
++            .checked_sub(&amounts_out.1)
++            .ok_or(Error::<T>::InsufficientReserves)?;
++        self.total_liquidity = self
++            .total_liquidity
++            .checked_sub(&liquidity_burned)
++            .ok_or(Error::<T>::InsufficientLiquidity)?;
++        Ok(())
+     }
+ }

@@ -1,0 +1,72 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index bcd7b3e..068d20f 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -13,6 +13,7 @@ use pallet::*;
+ mod mock;
+ 
+ // This module contains the unit tests for this pallet.
++mod liquidity_pool;
+ #[cfg(test)]
+ mod tests;
+ 
+@@ -30,21 +31,12 @@ pub type AssetBalanceOf<T> = <<T as Config>::Fungibles as fungibles::Inspect<
+     <T as frame_system::Config>::AccountId,
+ >>::Balance;
+ 
+-#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+-#[scale_info(skip_type_params(T))]
+-pub struct LiquidityPool<T: Config> {
+-    pub assets: (AssetIdOf<T>, AssetIdOf<T>),
+-    pub reserves: (AssetBalanceOf<T>, AssetBalanceOf<T>),
+-    pub total_liquidity: AssetBalanceOf<T>,
+-    pub liquidity_token: AssetIdOf<T>,
+-    _marker: PhantomData<T>,
+-}
+-
+ // All pallet logic is defined in its own module and must be annotated by the `pallet` attribute.
+ #[frame_support::pallet]
+ pub mod pallet {
+     // Import various useful types required by all FRAME pallets.
+     use super::*;
++    use crate::liquidity_pool::LiquidityPool;
+     use frame_support::pallet_prelude::*;
+     use frame_system::pallet_prelude::*;
+ 
+diff --git a/src/liquidity_pool.rs b/src/liquidity_pool.rs
+new file mode 100644
+index 0000000..e6e464f
+--- /dev/null
++++ b/src/liquidity_pool.rs
+@@ -0,0 +1,31 @@
++use crate::pallet::Config;
++use crate::{AssetBalanceOf, AssetIdOf};
++use codec::{Decode, Encode, MaxEncodedLen};
++use frame_support::dispatch::TypeInfo;
++use frame_support::RuntimeDebug;
++use std::marker::PhantomData;
++
++#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
++#[scale_info(skip_type_params(T))]
++pub struct LiquidityPool<T: Config> {
++    pub assets: (AssetIdOf<T>, AssetIdOf<T>),
++    pub reserves: (AssetBalanceOf<T>, AssetBalanceOf<T>),
++    pub total_liquidity: AssetBalanceOf<T>,
++    pub liquidity_token: AssetIdOf<T>,
++    _marker: PhantomData<T>,
++}
++
++impl<T: Config> LiquidityPool<T> {
++    // Function to mint liquidity tokens and update reserves
++    pub fn mint(
++        &mut self,
++        amounts: (AssetBalanceOf<T>, AssetBalanceOf<T>),
++        liquidity_minted: AssetBalanceOf<T>,
++    ) {
++        self.reserves.0 = self.reserves.0 + amounts.0;
++        self.reserves.1 = self.reserves.1 + amounts.1;
++        self.total_liquidity = self.total_liquidity + liquidity_minted;
++    }
++
++    // TODO Function to burn liquidity tokens and update reserves
++}

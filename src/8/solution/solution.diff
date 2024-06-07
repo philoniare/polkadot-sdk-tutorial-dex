@@ -1,0 +1,16 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 1e657b5..bcd7b3e 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -78,7 +78,10 @@ pub mod pallet {
+     pub type LiquidityPools<T: Config> =
+         StorageMap<_, Blake2_128Concat, (AssetIdOf<T>, AssetIdOf<T>), LiquidityPool<T>>;
+ 
+-    // TODO: Define LiquidityTokens storage
++    /// Storage map for storing mapping of liquidity token to asset pair
++    #[pallet::storage]
++    pub type LiquidityTokens<T: Config> =
++        StorageMap<_, Blake2_128Concat, AssetIdOf<T>, (AssetIdOf<T>, AssetIdOf<T>), ValueQuery>;
+ 
+     /// Events that functions in this pallet can emit.
+     #[pallet::event]

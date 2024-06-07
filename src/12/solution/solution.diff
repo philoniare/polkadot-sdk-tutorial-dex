@@ -1,0 +1,57 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 02e8bba..275c78b 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -88,6 +88,12 @@ pub mod pallet {
+ 
+         /// Insufficient reserves available in the pool for the requested operation.
+         InsufficientReserves,
++
++        /// Overflow occurred when adding to the reserve balance.
++        ReserveOverflow,
++
++        /// Overflow occurred when adding to the total liquidity.
++        LiquidityOverflow,
+     }
+ 
+     /// The pallet's dispatchable functions ([`Call`]s).
+diff --git a/src/liquidity_pool.rs b/src/liquidity_pool.rs
+index 20ef1a1..09768e5 100644
+--- a/src/liquidity_pool.rs
++++ b/src/liquidity_pool.rs
+@@ -4,7 +4,7 @@ use codec::{Decode, Encode, MaxEncodedLen};
+ use frame_support::dispatch::TypeInfo;
+ use frame_support::pallet_prelude::DispatchResult;
+ use frame_support::RuntimeDebug;
+-use sp_runtime::traits::CheckedSub;
++use sp_runtime::traits::{CheckedAdd, CheckedSub};
+ use std::marker::PhantomData;
+ 
+ #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+@@ -23,10 +23,22 @@ impl<T: Config> LiquidityPool<T> {
+         &mut self,
+         amounts: (AssetBalanceOf<T>, AssetBalanceOf<T>),
+         liquidity_minted: AssetBalanceOf<T>,
+-    ) {
+-        self.reserves.0 = self.reserves.0 + amounts.0;
+-        self.reserves.1 = self.reserves.1 + amounts.1;
+-        self.total_liquidity = self.total_liquidity + liquidity_minted;
++    ) -> DispatchResult {
++        self.reserves.0 = self
++            .reserves
++            .0
++            .checked_add(&amounts.0)
++            .ok_or(Error::<T>::ReserveOverflow)?;
++        self.reserves.1 = self
++            .reserves
++            .1
++            .checked_add(&amounts.1)
++            .ok_or(Error::<T>::ReserveOverflow)?;
++        self.total_liquidity = self
++            .total_liquidity
++            .checked_add(&liquidity_minted)
++            .ok_or(Error::<T>::LiquidityOverflow)?;
++        Ok(())
+     }
+ 
+     // Function to burn liquidity tokens and update reserves
