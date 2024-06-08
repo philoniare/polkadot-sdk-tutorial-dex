@@ -1,122 +1,50 @@
-# Implementing the call to mint
+# Solution for `burn_liquidity`
 
-In a similar fashion, we could implement the call to `mint_liquidity`. We still have some parts that we have not
-discussed yet, but don't worry, we'll be implementing those in later modules.
-Here's how we can implement the `mint_liqudity` call:
+There's lots of ways that this can be implemented. Here's a sample implementation:
 
 ```rust
-#[pallet::call_index(1)]
+#[pallet::call_index(2)]
 #[pallet::weight(Weight::default())]
-pub fn mint_liquidity(
+pub fn burn_liquidity(
     origin: OriginFor<T>,
     asset_a: AssetIdOf<T>,
     asset_b: AssetIdOf<T>,
-    amount_a: AssetBalanceOf<T>,
-    amount_b: AssetBalanceOf<T>,
-    min_liquidity: AssetBalanceOf<T>,
+    liquidity_burned: AssetBalanceOf<T>,
+    min_amount_a: AssetBalanceOf<T>,
+    min_amount_b: AssetBalanceOf<T>,
 ) -> DispatchResult {
     let sender = ensure_signed(origin)?;
 
     let trading_pair = (asset_a, asset_b);
 
-    // Get the liquidity pool from storage
     let mut liquidity_pool =
-        LiquidityPools::<T>::get(&trading_pair).ok_or(Error::<T>::LiquidityPoolNotFound)?;
+        LiquidityPools::<T>::get(trading_pair).ok_or(Error::<T>::LiquidityPoolNotFound)?;
 
-    // Calculate the liquidity minted based on the provided amounts and the current reserves
-    let liquidity_minted = Self::calculate_liquidity_minted(
-        (amount_a, amount_b),
+    // Calculate the amounts of tokens to withdraw based on the liquidity burned and
+    // the current reserves
+    let amounts_out = Self::calculate_amounts_out(
+        liquidity_burned,
         (liquidity_pool.reserves.0, liquidity_pool.reserves.1),
         liquidity_pool.total_liquidity,
     )?;
-
-    // Ensure that the liquidity minted is greater than or equal to the minimum liquidity specified
     ensure!(
-                liquidity_minted >= min_liquidity,
-                Error::<T>::InsufficientLiquidityMinted
-            );
+        amounts_out.0 >= min_amount_a && amounts_out.1 >= min_amount_b,
+        Error::<T>::InsufficientAmountsOut
+    );
 
-    // Transfer the assets from the sender to the liquidity pool
-    Self::transfer_asset_to_pool(&sender, trading_pair.0, amount_a)?;
-    Self::transfer_asset_to_pool(&sender, trading_pair.1, amount_b)?;
+    // Burn the liquidity tokens from the sender
+    Self::burn_liquidity_tokens(&sender, liquidity_pool.liquidity_token, liquidity_burned)?;
 
-    // Mint liquidity tokens to the sender
-    Self::mint_liquidity_tokens(&sender, liquidity_pool.liquidity_token, liquidity_minted)?;
+    // Update the liquidity pool reserves and total liquidity
+    liquidity_pool.burn(liquidity_burned, amounts_out)?;
+    LiquidityPools::<T>::insert(trading_pair, liquidity_pool);
 
-    // Update the liquidity pool reserves and total liquidity using the `mint` method
-    liquidity_pool.mint((amount_a, amount_b), liquidity_minted)?;
-
-    // Update the liquidity pool in storage
-    LiquidityPools::<T>::insert(&trading_pair, liquidity_pool);
-
-    // Emit the LiquidityMinted event
-    Self::deposit_event(Event::LiquidityMinted(
+    Self::deposit_event(Event::LiquidityBurned(
         sender,
         trading_pair,
-        liquidity_minted,
+        liquidity_burned,
     ));
 
     Ok(())
 }
 ```
-
-
-We've abstracted away some functionality to helper methods. For example, the `calculate_liquidity_minted` function,
-which calculates the amount of liquidity tokens to be minted based on the provided asset amounts and the current state
-of the liquidity pool. When total liquidity is non-zero, `liquidity_minted` is calculated as
-`(amount * total_liquidity) / reserve` for each asset. If there's no existing liquidity it calculates the geometric
-mean:
-
-```rust
-impl<T: Config> Pallet<T> {
-    fn calculate_liquidity_minted(
-        amounts: (AssetBalanceOf<T>, AssetBalanceOf<T>),
-        reserves: (AssetBalanceOf<T>, AssetBalanceOf<T>),
-        total_liquidity: AssetBalanceOf<T>,
-    ) -> Result<AssetBalanceOf<T>, DispatchError> {
-        let (amount_a, amount_b) = amounts;
-        let (reserve_a, reserve_b) = reserves;
-
-        ensure!(
-                !amount_a.is_zero() && !amount_b.is_zero(),
-                Error::<T>::InsufficientLiquidityMinted
-            );
-
-        if total_liquidity.is_zero() {
-            // If the liquidity pool is empty, the minted liquidity is the geometric mean of the amounts
-            let liquidity_minted = Self::geometric_mean(amount_a, amount_b)?;
-            Ok(liquidity_minted)
-        } else {
-            // If the liquidity pool is not empty, calculate the minted liquidity proportionally
-            let liquidity_minted_a = amount_a
-                .checked_mul(&total_liquidity)
-                .ok_or(Error::<T>::ArithmeticOverflow)?
-                .checked_div(&reserve_a)
-                .ok_or(Error::<T>::DivisionByZero)?;
-
-            let liquidity_minted_b = amount_b
-                .checked_mul(&total_liquidity)
-                .ok_or(Error::<T>::ArithmeticOverflow)?
-                .checked_div(&reserve_b)
-                .ok_or(Error::<T>::DivisionByZero)?;
-
-            // Choose the smaller minted liquidity to maintain the desired asset ratio
-            let liquidity_minted = sp_std::cmp::min(liquidity_minted_a, liquidity_minted_b);
-            Ok(liquidity_minted)
-        }
-    }
-
-    fn geometric_mean(
-        amount_a: AssetBalanceOf<T>,
-        amount_b: AssetBalanceOf<T>,
-    ) -> Result<AssetBalanceOf<T>, DispatchError> {
-        let sqrt_product = (amount_a
-            .checked_mul(&amount_b)
-            .ok_or(Error::<T>::ArithmeticOverflow)?)
-            .integer_sqrt();
-        Ok(sqrt_product)
-    }
-}
-```
-
-Can you implement the call for burning the liquidity `burn_liquidity` next?
