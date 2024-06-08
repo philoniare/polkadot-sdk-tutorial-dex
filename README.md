@@ -1,49 +1,49 @@
-# FRAME support for Floating Point Arithmetic
+# Solution to Floating Point Arithmetic
 
-Substrate's `frame_support` module provides a set of types and methods for performing fixed-point arithmetic operations.
-These types, such as `PerBill`, `PerThousand`, and `PerMillion`, allow you to represent fractions and perform
-calculations with high precision. In this guide, we'll explore these types and their related methods.
+Here's how we can simplify the same method:
 
-- `PerThing` Trait:
-    - The `PerThing` trait is the foundation for the fixed-point types in Substrate.
-    - It defines a set of constants and methods for working with fractions.
-    - The trait is implemented by types like `PerBill`, `PerThousand`, and `PerMillion`.
-- `PerBill` Type:
-    - `PerBill` represents fractions with a precision of one billionth (10^-9).
-    - It is useful for representing very small fractions or percentages.
-    - The range of possible values for `PerBill` is from 0 to 1 billion (inclusive).
-- `PerThousand` Type:
-    - `PerThousand` represents fractions with a precision of one thousandth (10^-3).
-    - It is commonly used for representing percentages with one decimal place.
-    - The range of possible values for `PerThousand` is from 0 to 1,000 (inclusive).
-- `PerMillion` Type:
-    - `PerMillion` represents fractions with a precision of one millionth (10^-6).
-    - It offers a balance between precision and range for representing percentages.
-    - The range of possible values for `PerMillion` is from 0 to 1 million (inclusive).
-- Creating Instances:
-    - You can create instances of `PerBill`, `PerThousand`, or `PerMillion` using the `from_parts` method.
-    - For example: `let fraction = PerThousand::from_parts(250);` creates a `PerThousand` instance representing 25%.
-- Arithmetic Operations:
-    - The fixed-point types provide methods for performing arithmetic operations.
-        - `mul_floor(value)`: Multiplies the fraction by value and rounds down the result.
-        - `mul_ceil(value)`: Multiplies the fraction by value and rounds up the result.
-        - `div_floor(value)`: Divides value by the fraction and rounds down the result.
-        - `div_ceil(value)`: Divides value by the fraction and rounds up the result.
-- Comparison Methods:
-    - The fixed-point types implement comparison methods for checking equality and ordering.
-        - `is_zero()`: Checks if the fraction is equal to zero.
-        - `is_one()`: Checks if the fraction is equal to one.
-        - `deconstruct()`: Returns the raw value of the fraction as an integer.
-- Conversion Methods:
-    - The fixed-point types provide methods for converting between different precisions.
-        - `from_rational(numerator, denominator)`: Creates a fraction from a rational number.
-        - `from_rational_approximation(numerator, denominator)`: Creates an approximation of a rational number.
-        - `from_float(float)`: Creates a fraction from a floating-point number.
-          These types and methods in Substrate's `frame_support` module provide a convenient way to work with fractions
-          and perform precise arithmetic operations. They are particularly useful when dealing with percentages, fees,
-          or any scenario that requires fixed-point calculations.
+```rust
+// Helper function to calculate the amount of tokens to receive in a swap
+fn get_amount_out(
+    amount_in: AssetBalanceOf<T>,
+    reserve_in: AssetBalanceOf<T>,
+    reserve_out: AssetBalanceOf<T>,
+) -> Result<AssetBalanceOf<T>, DispatchError> {
+    // Ensure that both reserve balances are non-zero
+    ensure!(
+            !reserve_in.is_zero() && !reserve_out.is_zero(),
+            Error::<T>::InsufficientLiquidity
+        );
 
-By leveraging the power of `PerBill`, `PerThousand`, and related methods, you can write more expressive and precise code
-when working with fractions and percentages in your Substrate runtime.
+    // Define the swap fee as a Permill value (0.3%)
+    let swap_fee = Permill::from_perthousand(3);
 
-Use one of the methods to refactor the `get_amount_out` method.
+    // Calculate the input amount after deducting the swap fee
+    let amount_in_after_fee = amount_in
+        .checked_sub(&swap_fee.mul_floor(amount_in))
+        .ok_or(Error::<T>::ArithmeticOverflow)?;
+
+    // Calculate the numerator of the output amount formula
+    let numerator = amount_in_after_fee
+        .checked_mul(&reserve_out)
+        .ok_or(Error::<T>::ArithmeticOverflow)?;
+
+    // Calculate the denominator of the output amount formula
+    let denominator = reserve_in
+        .checked_add(&amount_in_after_fee)
+        .ok_or(Error::<T>::ArithmeticOverflow)?;
+
+    // Perform integer division to obtain the final output amount
+    let amount_out = numerator
+        .checked_div(&denominator)
+        .ok_or(Error::<T>::DivisionByZero)?;
+
+    // Return the calculated output amount
+    Ok(amount_out)
+}
+```
+
+We use `Permill::from_perthousand(3)` to define the swap fee as a `Permill` value. This represents a fee of 0.3%.
+To calculate the input amount after deducting the swap fee, we use `swap_fee.mul_floor(amount_in)`. The `mul_floor`
+method multiplies `amount_in` by the swap fee and rounds down the result to the nearest integer. We then subtract this
+fee from the original `amount_in` to get the amount after the fee deduction.
