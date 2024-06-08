@@ -1,29 +1,41 @@
-# Useful Macro Magic
+# Generic Types in Substrate
 
-In the context of a Substrate pallet, macros provided by the FRAME framework are extensively used to define and structure various aspects of the pallet. Here are the primary macro usages that you'll see often:
-1. Pallet Declaration:
-    - The `#[frame_support::pallet]` macro is used to declare the pallet module, indicating that it represents a FRAME pallet.
-    - This macro helps in organizing the pallet's code and provides a standard structure for defining the pallet's components.
-2. Configuration Trait:
-    - The `#[pallet::config]` macro is used to define the pallet's configuration trait, specifying the required types and constants for the pallet.
-    - This macro ensures that the pallet's configuration is structured correctly and can be easily implemented by the runtime.
-3. Storage Items:
-    - The `#[pallet::storage]` macro is used to define the pallet's storage items, such as storage values and storage maps.
-    - This macro simplifies the process of declaring storage items and generates the necessary code for accessing and modifying them.
-4. Events:
-    - The `#[pallet::event]` macro is used to define the events that the pallet can emit.
-    - It provides a clean and organized way to declare event types and their associated data.
-    - The `#[pallet::generate_deposit]` macro automatically generates the deposit_event function for emitting events, reducing boilerplate code.
-5. Errors:
-    - The `#[pallet::error]` macro is used to define the errors that the pallet can return.
-    - It helps in organizing the error variants and their associated data in a structured manner.
-6. Dispatchable Functions:
-    - The `#[pallet::call]` macro is used to define the pallet's dispatchable functions (or Calls).
-    - It provides a clear separation between the pallet's public interface and its internal implementation.
-    - The macro also handles the necessary boilerplate code for dispatching and executing the functions.
+To implement the liquidity pool functionality, we need to store and manage liquidity pools on-chain. In Substrate, we can utilize the powerful storage capabilities provided by the framework to achieve this.
 
-By leveraging these macros, the Substrate pallet's code becomes more organized, readable, and maintainable. The macros abstract away many of the low-level details and provide a high-level, declarative way to define the pallet's components.
+Let's first define the generic types that we'll be using. In Substrate, generic types are extensively used for various entities such as `AccountId`, `AssetId` and `BalanceOf`.
+The primary reason for using generic types is to provide flexibility and customization options for developers when
+building their blockchain runtime.
 
-Furthermore, the use of macros helps in enforcing a consistent structure across different pallets. This consistency makes it easier for developers to understand and work with multiple pallets within a Substrate runtime.
+Let's take a closer look at a specific example:
+```rust
+pub type AccountIdOf<T> = <T as frame_system::Config>::AccountId;
+```
 
-Now that we've familiarized ourselves with the starter pallet code, let's dive into specifying the generic types necessary for our project.
+This type definition is creating an alias `AccountIdOf<T>` that represents the AccountId type defined in the
+`frame_system::Config` trait for a given runtime configuration `T`. In other words, it allows the actual type of
+`AccountId` to be determined by the runtime that implements the `frame_system::Config` trait.
+
+The benefits of using generic types in blockchain development, compared to using specific types, are as follows:
+1. **Flexibility and Customization**:
+    - By using generic types, Substrate allows developers to define their own types for `AccountId`, `AssetId`,
+      `BalanceOf`, and other entities based on their specific requirements.
+    - Different blockchain projects may have different needs in terms of the size, structure, and representation of
+      these types. Generic types provide the flexibility to customize them according to the project's needs.
+    - For example, one project might use a 32-byte `AccountId`, while another project might opt for a 64-byte
+      `AccountId`. With generic types, each project can define its own AccountId type without modifying the underlying
+      Substrate framework.
+2. **Interoperability and Composability**:
+    - Generic types enable better interoperability and composability between different pallets and runtime configurations.
+    - By using generic types, pallets can be designed to work with various runtime configurations without being tightly coupled to specific types.
+    - This allows for easier integration and reuse of pallets across different blockchain projects, promoting code modularity and reducing duplication.
+3. **Upgradability and Future-proofing**:
+    - As blockchain technologies evolve, the requirements for types like `AccountId`, `AssetId`, and `BalanceOf` may change over time.
+    - By using generic types, Substrate enables easier upgradability of the runtime without breaking existing code.
+    - If a project decides to change the underlying type for AccountId in the future, they can do so by updating the runtime configuration without modifying the pallets that depend on it.
+4. **Runtime Optimization**:
+    - Generic types allow for runtime optimization based on the specific types used by the runtime.
+    - The Substrate compiler can generate optimized code for the specific types defined in the runtime configuration, potentially leading to improved performance and reduced runtime overhead.
+    - In contrast, using specific types instead of generics would lead to a more rigid and inflexible system. It would require modifying the pallets and runtime code whenever a change in the underlying types is needed, making upgrades and customization more difficult and error-prone.
+
+By leveraging generic types, Substrate provides a powerful and flexible framework for blockchain development. It allows developers to tailor the types to their specific needs while maintaining interoperability, composability, and upgradability. This flexibility is crucial in the rapidly evolving blockchain ecosystem, enabling projects to adapt and innovate without being constrained by fixed type definitions.
+
