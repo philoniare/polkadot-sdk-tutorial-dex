@@ -1,13 +1,13 @@
-# Solution to Generic Types in Substrate
+# Substrate Storage
 
-Here's the solution:
-```rust
-/// Type to access the Assets Pallet.
-type Fungibles: fungibles::Inspect<Self::AccountId, AssetId = u32>
-   + fungibles::Mutate<Self::AccountId>
-   + fungibles::Create<Self::AccountId>;
-```
+Substrate provides a powerful and flexible storage system that allows you to store and retrieve data on the blockchain.
 
-You can check out the reference [docs](https://paritytech.github.io/polkadot-sdk/master/frame_support/traits/tokens/fungibles/index.html) in order to find which traits you'll need to implement based on your specific
-use-case. In our case, we want to inspect, mutate and create a new asset, which will be used to represent a liquidity
-pool token.
+### The most commonly used storage types are:
+- **StorageValue**: Used to store a single value of a specific type.
+- **StorageMap**: Allows key-value pair storage, where each key is associated with a corresponding value.
+- **StorageDoubleMap**: Enables storing values with two keys, providing a two-dimensional mapping.
+
+These storage types are defined within the pallet using the `#[pallet::storage]` attribute and can be accessed using
+the generated API.
+
+Now, let's explore some naive storage primitives that can be used to represent liquidity pools and their associated data.
