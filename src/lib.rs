@@ -40,6 +40,7 @@ pub type AssetBalanceOf<T> = <<T as Config>::Fungibles as fungibles::Inspect<
 pub mod pallet {
     // Import various useful types required by all FRAME pallets.
     use super::*;
+    use crate::liquidity_pool::AssetPair;
     use crate::liquidity_pool::LiquidityPool;
     use frame_support::pallet_prelude::*;
     use frame_support::traits::fungibles::Mutate;
@@ -77,7 +78,7 @@ pub mod pallet {
     /// A storage map for storing liquidity pools
     #[pallet::storage]
     pub type LiquidityPools<T: Config> =
-        StorageMap<_, Blake2_128Concat, (AssetIdOf<T>, AssetIdOf<T>), LiquidityPool<T>>;
+        StorageMap<_, Blake2_128Concat, AssetPair<T>, LiquidityPool<T>>;
 
     /// Storage map for storing mapping of liquidity token to asset pair
     #[pallet::storage]
@@ -92,7 +93,7 @@ pub mod pallet {
         /// Parameters:
         /// - `T::AccountId`: The account ID of the liquidity provider who created the pool.
         /// - `(T::AssetId, T::AssetId)`: The trading pair of the created liquidity pool.
-        LiquidityPoolCreated(AccountIdOf<T>, (AssetIdOf<T>, AssetIdOf<T>)),
+        LiquidityPoolCreated(AccountIdOf<T>, AssetIdOf<T>, AssetIdOf<T>),
 
         /// Liquidity minted.
         /// Parameters:
@@ -101,7 +102,8 @@ pub mod pallet {
         /// - `T::Balance`: The amount of liquidity tokens minted.
         LiquidityMinted(
             AccountIdOf<T>,
-            (AssetIdOf<T>, AssetIdOf<T>),
+            AssetIdOf<T>,
+            AssetIdOf<T>,
             AssetBalanceOf<T>,
         ),
 
@@ -112,7 +114,8 @@ pub mod pallet {
         /// - `T::Balance`: The amount of liquidity tokens burned.
         LiquidityBurned(
             AccountIdOf<T>,
-            (AssetIdOf<T>, AssetIdOf<T>),
+            AssetIdOf<T>,
+            AssetIdOf<T>,
             AssetBalanceOf<T>,
         ),
 
@@ -193,25 +196,29 @@ pub mod pallet {
             // ensure that the origin has been signed
             let sender = ensure_signed(origin)?;
 
-            let trading_pair = Self::get_trading_pair(asset_a, asset_b);
+            let trading_pair = AssetPair::new(asset_a.clone(), asset_b.clone());
             ensure!(
-                !LiquidityPools::<T>::contains_key(trading_pair),
+                !LiquidityPools::<T>::contains_key(trading_pair.clone()),
                 Error::<T>::LiquidityPoolAlreadyExists
             );
 
             // Create a new liquidity pool
             let liquidity_pool = LiquidityPool {
-                assets: trading_pair,
+                assets: trading_pair.clone(),
                 reserves: (Zero::zero(), Zero::zero()),
                 total_liquidity: Zero::zero(),
                 liquidity_token,
             };
 
             // Insert the new liquidity pool into the storage
-            LiquidityPools::<T>::insert(trading_pair, liquidity_pool);
+            LiquidityPools::<T>::insert(trading_pair.clone(), liquidity_pool);
 
             // Log an event indicating that the pool was created
-            Self::deposit_event(Event::LiquidityPoolCreated(sender, trading_pair));
+            Self::deposit_event(Event::LiquidityPoolCreated(
+                sender,
+                trading_pair.asset_a,
+                trading_pair.asset_b,
+            ));
 
             Ok(())
         }
@@ -228,7 +235,7 @@ pub mod pallet {
         ) -> DispatchResult {
             let sender = ensure_signed(origin)?;
 
-            let trading_pair = Self::get_trading_pair(asset_a, asset_b);
+            let trading_pair = AssetPair::new(asset_a, asset_b);
 
             // Get the liquidity pool from storage
             let mut liquidity_pool =
@@ -248,8 +255,8 @@ pub mod pallet {
             );
 
             // Transfer the assets from the sender to the liquidity pool
-            Self::transfer_asset_to_pool(&sender, trading_pair.0, amount_a)?;
-            Self::transfer_asset_to_pool(&sender, trading_pair.1, amount_b)?;
+            Self::transfer_asset_to_pool(&sender, trading_pair.asset_a, amount_a)?;
+            Self::transfer_asset_to_pool(&sender, trading_pair.asset_b, amount_b)?;
 
             // Mint liquidity tokens to the sender
             Self::mint_liquidity_tokens(&sender, liquidity_pool.liquidity_token, liquidity_minted)?;
@@ -263,7 +270,8 @@ pub mod pallet {
             // Emit the LiquidityMinted event
             Self::deposit_event(Event::LiquidityMinted(
                 sender,
-                trading_pair,
+                trading_pair.asset_a,
+                trading_pair.asset_b,
                 liquidity_minted,
             ));
 
@@ -283,10 +291,10 @@ pub mod pallet {
         ) -> DispatchResult {
             let sender = ensure_signed(origin)?;
 
-            let trading_pair = Self::get_trading_pair(asset_a, asset_b);
+            let trading_pair = AssetPair::new(asset_a, asset_b);
 
-            let mut liquidity_pool =
-                LiquidityPools::<T>::get(trading_pair).ok_or(Error::<T>::LiquidityPoolNotFound)?;
+            let mut liquidity_pool = LiquidityPools::<T>::get(trading_pair.clone())
+                .ok_or(Error::<T>::LiquidityPoolNotFound)?;
 
             // Calculate the amounts of tokens to withdraw based on the liquidity burned and
             // the current reserves
@@ -305,11 +313,12 @@ pub mod pallet {
 
             // Update the liquidity pool reserves and total liquidity
             liquidity_pool.burn(liquidity_burned, amounts_out)?;
-            LiquidityPools::<T>::insert(trading_pair, liquidity_pool);
+            LiquidityPools::<T>::insert(trading_pair.clone(), liquidity_pool);
 
             Self::deposit_event(Event::LiquidityBurned(
                 sender,
-                trading_pair,
+                trading_pair.asset_a,
+                trading_pair.asset_b,
                 liquidity_burned,
             ));
 
@@ -327,10 +336,10 @@ pub mod pallet {
         ) -> DispatchResult {
             let sender = ensure_signed(origin)?;
 
-            let trading_pair = (asset_in, asset_out);
+            let trading_pair = AssetPair::new(asset_in, asset_out);
 
-            let mut liquidity_pool =
-                LiquidityPools::<T>::get(trading_pair).ok_or(Error::<T>::LiquidityPoolNotFound)?;
+            let mut liquidity_pool = LiquidityPools::<T>::get(trading_pair.clone())
+                .ok_or(Error::<T>::LiquidityPoolNotFound)?;
 
             let amount_out = liquidity_pool.swap(asset_in, amount_in, asset_out, min_amount_out)?;
 
@@ -504,18 +513,6 @@ pub mod pallet {
                 Preservation::Expendable,
             )?;
             Ok(())
-        }
-
-        // Helper function to get the consistently ordered trading pair
-        fn get_trading_pair(
-            asset_a: AssetIdOf<T>,
-            asset_b: AssetIdOf<T>,
-        ) -> (AssetIdOf<T>, AssetIdOf<T>) {
-            if asset_a < asset_b {
-                (asset_a, asset_b)
-            } else {
-                (asset_b, asset_a)
-            }
         }
     }
 }
