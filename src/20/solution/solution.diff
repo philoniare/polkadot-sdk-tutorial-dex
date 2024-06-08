@@ -1,0 +1,244 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 153aace..3604608 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -40,6 +40,7 @@ pub type AssetBalanceOf<T> = <<T as Config>::Fungibles as fungibles::Inspect<
+ pub mod pallet {
+     // Import various useful types required by all FRAME pallets.
+     use super::*;
++    use crate::liquidity_pool::AssetPair;
+     use crate::liquidity_pool::LiquidityPool;
+     use frame_support::pallet_prelude::*;
+     use frame_support::traits::fungibles::Mutate;
+@@ -77,7 +78,7 @@ pub mod pallet {
+     /// A storage map for storing liquidity pools
+     #[pallet::storage]
+     pub type LiquidityPools<T: Config> =
+-        StorageMap<_, Blake2_128Concat, (AssetIdOf<T>, AssetIdOf<T>), LiquidityPool<T>>;
++        StorageMap<_, Blake2_128Concat, AssetPair<T>, LiquidityPool<T>>;
+ 
+     /// Storage map for storing mapping of liquidity token to asset pair
+     #[pallet::storage]
+@@ -92,7 +93,7 @@ pub mod pallet {
+         /// Parameters:
+         /// - `T::AccountId`: The account ID of the liquidity provider who created the pool.
+         /// - `(T::AssetId, T::AssetId)`: The trading pair of the created liquidity pool.
+-        LiquidityPoolCreated(AccountIdOf<T>, (AssetIdOf<T>, AssetIdOf<T>)),
++        LiquidityPoolCreated(AccountIdOf<T>, AssetIdOf<T>, AssetIdOf<T>),
+ 
+         /// Liquidity minted.
+         /// Parameters:
+@@ -101,7 +102,8 @@ pub mod pallet {
+         /// - `T::Balance`: The amount of liquidity tokens minted.
+         LiquidityMinted(
+             AccountIdOf<T>,
+-            (AssetIdOf<T>, AssetIdOf<T>),
++            AssetIdOf<T>,
++            AssetIdOf<T>,
+             AssetBalanceOf<T>,
+         ),
+ 
+@@ -112,7 +114,8 @@ pub mod pallet {
+         /// - `T::Balance`: The amount of liquidity tokens burned.
+         LiquidityBurned(
+             AccountIdOf<T>,
+-            (AssetIdOf<T>, AssetIdOf<T>),
++            AssetIdOf<T>,
++            AssetIdOf<T>,
+             AssetBalanceOf<T>,
+         ),
+ 
+@@ -193,25 +196,29 @@ pub mod pallet {
+             // ensure that the origin has been signed
+             let sender = ensure_signed(origin)?;
+ 
+-            let trading_pair = Self::get_trading_pair(asset_a, asset_b);
++            let trading_pair = AssetPair::new(asset_a.clone(), asset_b.clone());
+             ensure!(
+-                !LiquidityPools::<T>::contains_key(trading_pair),
++                !LiquidityPools::<T>::contains_key(trading_pair.clone()),
+                 Error::<T>::LiquidityPoolAlreadyExists
+             );
+ 
+             // Create a new liquidity pool
+             let liquidity_pool = LiquidityPool {
+-                assets: trading_pair,
++                assets: trading_pair.clone(),
+                 reserves: (Zero::zero(), Zero::zero()),
+                 total_liquidity: Zero::zero(),
+                 liquidity_token,
+             };
+ 
+             // Insert the new liquidity pool into the storage
+-            LiquidityPools::<T>::insert(trading_pair, liquidity_pool);
++            LiquidityPools::<T>::insert(trading_pair.clone(), liquidity_pool);
+ 
+             // Log an event indicating that the pool was created
+-            Self::deposit_event(Event::LiquidityPoolCreated(sender, trading_pair));
++            Self::deposit_event(Event::LiquidityPoolCreated(
++                sender,
++                trading_pair.asset_a,
++                trading_pair.asset_b,
++            ));
+ 
+             Ok(())
+         }
+@@ -228,7 +235,7 @@ pub mod pallet {
+         ) -> DispatchResult {
+             let sender = ensure_signed(origin)?;
+ 
+-            let trading_pair = Self::get_trading_pair(asset_a, asset_b);
++            let trading_pair = AssetPair::new(asset_a, asset_b);
+ 
+             // Get the liquidity pool from storage
+             let mut liquidity_pool =
+@@ -248,8 +255,8 @@ pub mod pallet {
+             );
+ 
+             // Transfer the assets from the sender to the liquidity pool
+-            Self::transfer_asset_to_pool(&sender, trading_pair.0, amount_a)?;
+-            Self::transfer_asset_to_pool(&sender, trading_pair.1, amount_b)?;
++            Self::transfer_asset_to_pool(&sender, trading_pair.asset_a, amount_a)?;
++            Self::transfer_asset_to_pool(&sender, trading_pair.asset_b, amount_b)?;
+ 
+             // Mint liquidity tokens to the sender
+             Self::mint_liquidity_tokens(&sender, liquidity_pool.liquidity_token, liquidity_minted)?;
+@@ -263,7 +270,8 @@ pub mod pallet {
+             // Emit the LiquidityMinted event
+             Self::deposit_event(Event::LiquidityMinted(
+                 sender,
+-                trading_pair,
++                trading_pair.asset_a,
++                trading_pair.asset_b,
+                 liquidity_minted,
+             ));
+ 
+@@ -283,10 +291,10 @@ pub mod pallet {
+         ) -> DispatchResult {
+             let sender = ensure_signed(origin)?;
+ 
+-            let trading_pair = Self::get_trading_pair(asset_a, asset_b);
++            let trading_pair = AssetPair::new(asset_a, asset_b);
+ 
+-            let mut liquidity_pool =
+-                LiquidityPools::<T>::get(trading_pair).ok_or(Error::<T>::LiquidityPoolNotFound)?;
++            let mut liquidity_pool = LiquidityPools::<T>::get(trading_pair.clone())
++                .ok_or(Error::<T>::LiquidityPoolNotFound)?;
+ 
+             // Calculate the amounts of tokens to withdraw based on the liquidity burned and
+             // the current reserves
+@@ -305,11 +313,12 @@ pub mod pallet {
+ 
+             // Update the liquidity pool reserves and total liquidity
+             liquidity_pool.burn(liquidity_burned, amounts_out)?;
+-            LiquidityPools::<T>::insert(trading_pair, liquidity_pool);
++            LiquidityPools::<T>::insert(trading_pair.clone(), liquidity_pool);
+ 
+             Self::deposit_event(Event::LiquidityBurned(
+                 sender,
+-                trading_pair,
++                trading_pair.asset_a,
++                trading_pair.asset_b,
+                 liquidity_burned,
+             ));
+ 
+@@ -327,10 +336,10 @@ pub mod pallet {
+         ) -> DispatchResult {
+             let sender = ensure_signed(origin)?;
+ 
+-            let trading_pair = (asset_in, asset_out);
++            let trading_pair = AssetPair::new(asset_in, asset_out);
+ 
+-            let mut liquidity_pool =
+-                LiquidityPools::<T>::get(trading_pair).ok_or(Error::<T>::LiquidityPoolNotFound)?;
++            let mut liquidity_pool = LiquidityPools::<T>::get(trading_pair.clone())
++                .ok_or(Error::<T>::LiquidityPoolNotFound)?;
+ 
+             let amount_out = liquidity_pool.swap(asset_in, amount_in, asset_out, min_amount_out)?;
+ 
+@@ -505,17 +514,5 @@ pub mod pallet {
+             )?;
+             Ok(())
+         }
+-
+-        // Helper function to get the consistently ordered trading pair
+-        fn get_trading_pair(
+-            asset_a: AssetIdOf<T>,
+-            asset_b: AssetIdOf<T>,
+-        ) -> (AssetIdOf<T>, AssetIdOf<T>) {
+-            if asset_a < asset_b {
+-                (asset_a, asset_b)
+-            } else {
+-                (asset_b, asset_a)
+-            }
+-        }
+     }
+ }
+diff --git a/src/liquidity_pool.rs b/src/liquidity_pool.rs
+index 2052f5a..aa5e1b8 100644
+--- a/src/liquidity_pool.rs
++++ b/src/liquidity_pool.rs
+@@ -5,10 +5,34 @@ use sp_runtime::traits::{
+ };
+ use sp_runtime::Permill;
+ 
++#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
++#[scale_info(skip_type_params(T))]
++pub struct AssetPair<T: Config> {
++    pub asset_a: AssetIdOf<T>,
++    pub asset_b: AssetIdOf<T>,
++}
++
++impl<T: Config> AssetPair<T> {
++    pub fn new(asset_one: AssetIdOf<T>, asset_two: AssetIdOf<T>) -> Self {
++        if asset_one <= asset_two {
++            AssetPair {
++                asset_a: asset_one,
++                asset_b: asset_two,
++            }
++        } else {
++            // Swap the two for ordering
++            AssetPair {
++                asset_a: asset_two,
++                asset_b: asset_one,
++            }
++        }
++    }
++}
++
+ #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+ #[scale_info(skip_type_params(T))]
+ pub struct LiquidityPool<T: Config> {
+-    pub assets: (AssetIdOf<T>, AssetIdOf<T>),
++    pub assets: AssetPair<T>,
+     pub reserves: (AssetBalanceOf<T>, AssetBalanceOf<T>),
+     pub total_liquidity: AssetBalanceOf<T>,
+     pub liquidity_token: AssetIdOf<T>,
+@@ -70,15 +94,15 @@ impl<T: Config> LiquidityPool<T> {
+         min_amount_out: AssetBalanceOf<T>,
+     ) -> Result<AssetBalanceOf<T>, DispatchError> {
+         ensure!(
+-            self.assets.0 == asset_in || self.assets.1 == asset_in,
++            self.assets.asset_a == asset_in || self.assets.asset_b == asset_in,
+             Error::<T>::InvalidAssetIn
+         );
+         ensure!(
+-            self.assets.0 == asset_out || self.assets.1 == asset_out,
++            self.assets.asset_a == asset_out || self.assets.asset_b == asset_out,
+             Error::<T>::InvalidAssetOut
+         );
+ 
+-        let (reserve_in, reserve_out) = if self.assets.0 == asset_in {
++        let (reserve_in, reserve_out) = if self.assets.asset_a == asset_in {
+             (self.reserves.0, self.reserves.1)
+         } else {
+             (self.reserves.1, self.reserves.0)
+@@ -90,7 +114,7 @@ impl<T: Config> LiquidityPool<T> {
+             Error::<T>::InsufficientAmountOut
+         );
+ 
+-        if self.assets.0 == asset_in {
++        if self.assets.asset_a == asset_in {
+             self.reserves.0 = self
+                 .reserves
+                 .0

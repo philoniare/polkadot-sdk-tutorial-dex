@@ -18,3 +18,5 @@
     - [17. Call to create liquidity pool](17/README.md)
     - [18. Implementing the call to mint](18/README.md)
     - [19. Swap Functionality](19/README.md)
+    - [20. Using structs](20/README.md)
+    - [21. Next Steps](21/README.md)

@@ -1,0 +1,29 @@
+diff --git a/src/lib.rs b/src/lib.rs
+index 3604608..276db2d 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -7,9 +7,7 @@ use frame_support::traits::fungible;
+ use frame_support::traits::fungibles;
+ use frame_support::PalletId;
+ use pallet::*;
+-use sp_runtime::traits::{
+-    AccountIdConversion, CheckedDiv, CheckedMul, IntegerSquareRoot, Saturating, Zero,
+-};
++use sp_runtime::traits::{AccountIdConversion, CheckedDiv, CheckedMul, IntegerSquareRoot, Zero};
+ 
+ // FRAME pallets require their own "mock runtimes" to be able to run unit tests. This module
+ // contains a mock runtime specific for testing this pallet's functionality.
+diff --git a/src/liquidity_pool.rs b/src/liquidity_pool.rs
+index aa5e1b8..5c3dcfa 100644
+--- a/src/liquidity_pool.rs
++++ b/src/liquidity_pool.rs
+@@ -1,8 +1,6 @@
+ use super::*;
+ use frame_support::pallet_prelude::*;
+-use sp_runtime::traits::{
+-    CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, SaturatedConversion, Zero,
+-};
++use sp_runtime::traits::{CheckedAdd, CheckedDiv, CheckedMul, CheckedSub, Zero};
+ use sp_runtime::Permill;
+ 
+ #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]

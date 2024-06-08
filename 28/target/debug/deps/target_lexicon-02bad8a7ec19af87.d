@@ -1,0 +1,13 @@
+/Users/philoniare/polkadot/polkadot-sdk-tutorial-dex/28/target/debug/deps/libtarget_lexicon-02bad8a7ec19af87.rmeta: /Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/lib.rs /Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/data_model.rs /Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/host.rs /Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/parse_error.rs /Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/targets.rs /Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/triple.rs /Users/philoniare/polkadot/polkadot-sdk-tutorial-dex/28/target/debug/build/target-lexicon-6734017c58bd9c19/out/host.rs
+
+/Users/philoniare/polkadot/polkadot-sdk-tutorial-dex/28/target/debug/deps/target_lexicon-02bad8a7ec19af87.d: /Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/lib.rs /Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/data_model.rs /Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/host.rs /Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/parse_error.rs /Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/targets.rs /Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/triple.rs /Users/philoniare/polkadot/polkadot-sdk-tutorial-dex/28/target/debug/build/target-lexicon-6734017c58bd9c19/out/host.rs
+
+/Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/lib.rs:
+/Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/data_model.rs:
+/Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/host.rs:
+/Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/parse_error.rs:
+/Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/targets.rs:
+/Users/philoniare/.cargo/registry/src/index.crates.io-6f17d22bba15001f/target-lexicon-0.12.14/src/triple.rs:
+/Users/philoniare/polkadot/polkadot-sdk-tutorial-dex/28/target/debug/build/target-lexicon-6734017c58bd9c19/out/host.rs:
+
+# env-dep:OUT_DIR=/Users/philoniare/polkadot/polkadot-sdk-tutorial-dex/28/target/debug/build/target-lexicon-6734017c58bd9c19/out
