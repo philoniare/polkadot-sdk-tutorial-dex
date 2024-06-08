@@ -56,7 +56,10 @@ pub mod pallet {
             + fungible::freeze::Inspect<Self::AccountId>
             + fungible::freeze::Mutate<Self::AccountId>;
 
-        // TODO: Define the Fungibles type here
+        // Type to access the Assets Pallet
+        type Fungibles: fungibles::Inspect<Self::AccountId, AssetId = u32>
+            + fungibles::Mutate<Self::AccountId>
+            + fungibles::Create<Self::AccountId>;
     }
 
     /// A storage item for this pallet.
