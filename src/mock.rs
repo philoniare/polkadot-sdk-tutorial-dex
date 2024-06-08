@@ -92,6 +92,8 @@ impl pallet_assets::Config for Test {
 
 impl pallet_dex::Config for Test {
     type RuntimeEvent = RuntimeEvent;
+    type NativeBalance = Balances;
+    type Fungibles = Assets;
 }
 
 // Build genesis storage according to the mock runtime.
