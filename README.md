@@ -1,32 +1,5 @@
-# Initialize the pallet project
+# Useful Macro Magic
 
-In this step, we will initialize the pallet project, where we can start building simple logic for the DEX pallet.
-
-1. Clone the template branch by running:
-    ```sh
-    git clone --branch template git@github.com:shawntabrizi/polkadot-sdk-tutorial-dex.git pallet-dex
-    ```
-2. Now, that we have starter pallet. Let's break down what each file does:
-- `Cargo.toml`:
-    - **[dependencies]** section: Lists the dependencies required by the pallet.
-        - codec: Specifies the encoding and decoding library used for serialization.
-        - scale-info: Provides metadata information for the pallet's types.
-        - frame-benchmarking: Allows benchmarking the pallet's performance.
-        - frame-support: Provides the core framework for building Substrate pallets.
-        - frame-system: Offers system-level functionality and types for the pallet.
-    - **[dev-dependencies]** section: Lists the dependencies required only for development and testing purposes.
-        - sp-core: Provides core primitives and types used in Substrate development.
-        - sp-io: Offers I/O functionality for Substrate pallets.
-        - sp-runtime: Provides runtime-related primitives and types.
-- `lib.rs`: This file serves as the main entry point for the Substrate pallet. It defines the pallet's structure,
-  configuration, storage, events, errors, and dispatchable functions. By organizing the pallet's code in this manner, it
-  becomes easier to understand, test, and maintain the pallet's functionality within the Substrate framework. The `lib.rs`
-  file in a Substrate pallet heavily relies on the use of macros to organize and simplify the code. Macros are a powerful feature in Rust that allow you to define reusable code templates and generate code based on those templates.
-- `mock.rs` used to create a mock runtime environment for testing the functionality of the `pallet_dex` pallet. It sets up a minimal runtime configuration that includes the necessary modules and types required for testing the pallet.
-  By creating a mock runtime, developers can write unit tests for the pallet's functionality, ensuring that it behaves as expected and catching potential issues early in the development process. The `new_test_ext` function is typically used in the test cases to initialize the mock runtime's storage before running the tests.
-- `tests.rs` contains the unit tests for the `pallet_dex` pallet. It imports the necessary modules and types from the `mock.rs` file and the pallet itself, and defines test functions to verify the pallet's behavior.
-
-## Useful Macro Magic
 In the context of a Substrate pallet, macros provided by the FRAME framework are extensively used to define and structure various aspects of the pallet. Here are the primary macro usages that you'll see often:
 1. Pallet Declaration:
     - The `#[frame_support::pallet]` macro is used to declare the pallet module, indicating that it represents a FRAME pallet.
