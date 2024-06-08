@@ -1,4 +1,4 @@
-# 3. Dynamic Liquidity Pools with Arbitrary Trading Pairs:
+# Dynamic Liquidity Pools with Arbitrary Trading Pairs
 Instead of just storing balance tuples, we can do better to encapsulate the liquidity pool state in a struct called
 `LiquidityPool`:
 ```rust

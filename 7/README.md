@@ -1,4 +1,4 @@
-# 1. Single Liquidity Pool:
+# Single Liquidity Pool
 To store a single liquidity pool, we can use a `StorageValue`:
 ```rust
 #[pallet::storage]

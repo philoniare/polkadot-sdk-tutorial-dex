@@ -1,4 +1,4 @@
-# 2. Multiple Liquidity Pools with Fixed Trading Pairs
+# Multiple Liquidity Pools with Fixed Trading Pairs
 To store multiple liquidity pools with fixed trading pairs, we can use a `StorageMap`:
 ```rust
 #[pallet::storage]
