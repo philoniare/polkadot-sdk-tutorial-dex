@@ -7,8 +7,32 @@ use sp_runtime::Permill;
 
 #[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
 #[scale_info(skip_type_params(T))]
+pub struct AssetPair<T: Config> {
+    pub asset_a: AssetIdOf<T>,
+    pub asset_b: AssetIdOf<T>,
+}
+
+impl<T: Config> AssetPair<T> {
+    pub fn new(asset_one: AssetIdOf<T>, asset_two: AssetIdOf<T>) -> Self {
+        if asset_one <= asset_two {
+            AssetPair {
+                asset_a: asset_one,
+                asset_b: asset_two,
+            }
+        } else {
+            // Swap the two for ordering
+            AssetPair {
+                asset_a: asset_two,
+                asset_b: asset_one,
+            }
+        }
+    }
+}
+
+#[derive(Clone, Encode, Decode, Eq, PartialEq, RuntimeDebug, MaxEncodedLen, TypeInfo)]
+#[scale_info(skip_type_params(T))]
 pub struct LiquidityPool<T: Config> {
-    pub assets: (AssetIdOf<T>, AssetIdOf<T>),
+    pub assets: AssetPair<T>,
     pub reserves: (AssetBalanceOf<T>, AssetBalanceOf<T>),
     pub total_liquidity: AssetBalanceOf<T>,
     pub liquidity_token: AssetIdOf<T>,
@@ -70,15 +94,15 @@ impl<T: Config> LiquidityPool<T> {
         min_amount_out: AssetBalanceOf<T>,
     ) -> Result<AssetBalanceOf<T>, DispatchError> {
         ensure!(
-            self.assets.0 == asset_in || self.assets.1 == asset_in,
+            self.assets.asset_a == asset_in || self.assets.asset_b == asset_in,
             Error::<T>::InvalidAssetIn
         );
         ensure!(
-            self.assets.0 == asset_out || self.assets.1 == asset_out,
+            self.assets.asset_a == asset_out || self.assets.asset_b == asset_out,
             Error::<T>::InvalidAssetOut
         );
 
-        let (reserve_in, reserve_out) = if self.assets.0 == asset_in {
+        let (reserve_in, reserve_out) = if self.assets.asset_a == asset_in {
             (self.reserves.0, self.reserves.1)
         } else {
             (self.reserves.1, self.reserves.0)
@@ -90,7 +114,7 @@ impl<T: Config> LiquidityPool<T> {
             Error::<T>::InsufficientAmountOut
         );
 
-        if self.assets.0 == asset_in {
+        if self.assets.asset_a == asset_in {
             self.reserves.0 = self
                 .reserves
                 .0
