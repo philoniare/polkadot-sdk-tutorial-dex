@@ -7,9 +7,7 @@ use frame_support::traits::fungible;
 use frame_support::traits::fungibles;
 use frame_support::PalletId;
 use pallet::*;
-use sp_runtime::traits::{
-    AccountIdConversion, CheckedDiv, CheckedMul, IntegerSquareRoot, Saturating, Zero,
-};
+use sp_runtime::traits::{AccountIdConversion, CheckedDiv, CheckedMul, IntegerSquareRoot, Zero};
 
 // FRAME pallets require their own "mock runtimes" to be able to run unit tests. This module
 // contains a mock runtime specific for testing this pallet's functionality.
