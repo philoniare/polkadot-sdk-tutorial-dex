@@ -1,101 +1,49 @@
-# Using Floating Point Arithmetic
+# FRAME support for Floating Point Arithmetic
 
-Here's how we would implement it:
+Substrate's `frame_support` module provides a set of types and methods for performing fixed-point arithmetic operations.
+These types, such as `PerBill`, `PerThousand`, and `PerMillion`, allow you to represent fractions and perform
+calculations with high precision. In this guide, we'll explore these types and their related methods.
 
-```rust
-// Function to swap tokens based on pool reserves
-pub fn swap(
-    &mut self,
-    asset_in: AssetIdOf<T>,
-    amount_in: AssetBalanceOf<T>,
-    asset_out: AssetIdOf<T>,
-    min_amount_out: AssetBalanceOf<T>,
-) -> Result<AssetBalanceOf<T>, DispatchError> {
-    ensure!(
-            self.assets.0 == asset_in || self.assets.1 == asset_in,
-            Error::<T>::InvalidAssetIn
-        );
-    ensure!(
-            self.assets.0 == asset_out || self.assets.1 == asset_out,
-            Error::<T>::InvalidAssetOut
-        );
+- `PerThing` Trait:
+    - The `PerThing` trait is the foundation for the fixed-point types in Substrate.
+    - It defines a set of constants and methods for working with fractions.
+    - The trait is implemented by types like `PerBill`, `PerThousand`, and `PerMillion`.
+- `PerBill` Type:
+    - `PerBill` represents fractions with a precision of one billionth (10^-9).
+    - It is useful for representing very small fractions or percentages.
+    - The range of possible values for `PerBill` is from 0 to 1 billion (inclusive).
+- `PerThousand` Type:
+    - `PerThousand` represents fractions with a precision of one thousandth (10^-3).
+    - It is commonly used for representing percentages with one decimal place.
+    - The range of possible values for `PerThousand` is from 0 to 1,000 (inclusive).
+- `PerMillion` Type:
+    - `PerMillion` represents fractions with a precision of one millionth (10^-6).
+    - It offers a balance between precision and range for representing percentages.
+    - The range of possible values for `PerMillion` is from 0 to 1 million (inclusive).
+- Creating Instances:
+    - You can create instances of `PerBill`, `PerThousand`, or `PerMillion` using the `from_parts` method.
+    - For example: `let fraction = PerThousand::from_parts(250);` creates a `PerThousand` instance representing 25%.
+- Arithmetic Operations:
+    - The fixed-point types provide methods for performing arithmetic operations.
+        - `mul_floor(value)`: Multiplies the fraction by value and rounds down the result.
+        - `mul_ceil(value)`: Multiplies the fraction by value and rounds up the result.
+        - `div_floor(value)`: Divides value by the fraction and rounds down the result.
+        - `div_ceil(value)`: Divides value by the fraction and rounds up the result.
+- Comparison Methods:
+    - The fixed-point types implement comparison methods for checking equality and ordering.
+        - `is_zero()`: Checks if the fraction is equal to zero.
+        - `is_one()`: Checks if the fraction is equal to one.
+        - `deconstruct()`: Returns the raw value of the fraction as an integer.
+- Conversion Methods:
+    - The fixed-point types provide methods for converting between different precisions.
+        - `from_rational(numerator, denominator)`: Creates a fraction from a rational number.
+        - `from_rational_approximation(numerator, denominator)`: Creates an approximation of a rational number.
+        - `from_float(float)`: Creates a fraction from a floating-point number.
+          These types and methods in Substrate's `frame_support` module provide a convenient way to work with fractions
+          and perform precise arithmetic operations. They are particularly useful when dealing with percentages, fees,
+          or any scenario that requires fixed-point calculations.
 
-    let (reserve_in, reserve_out) = if self.assets.0 == asset_in {
-        (self.reserves.0, self.reserves.1)
-    } else {
-        (self.reserves.1, self.reserves.0)
-    };
+By leveraging the power of `PerBill`, `PerThousand`, and related methods, you can write more expressive and precise code
+when working with fractions and percentages in your Substrate runtime.
 
-    let amount_out = Self::get_amount_out(amount_in, reserve_in, reserve_out)?;
-    ensure!(
-            amount_out >= min_amount_out,
-            Error::<T>::InsufficientAmountOut
-        );
-
-    if self.assets.0 == asset_in {
-        self.reserves.0 = self
-            .reserves
-            .0
-            .checked_add(&amount_in)
-            .ok_or(Error::<T>::ReserveOverflow)?;
-        self.reserves.1 = self
-            .reserves
-            .1
-            .checked_sub(&amount_out)
-            .ok_or(Error::<T>::InsufficientReserves)?;
-    } else {
-        self.reserves.0 = self
-            .reserves
-            .0
-            .checked_sub(&amount_out)
-            .ok_or(Error::<T>::InsufficientReserves)?;
-        self.reserves.1 = self
-            .reserves
-            .1
-            .checked_add(&amount_in)
-            .ok_or(Error::<T>::ReserveOverflow)?;
-    }
-
-    Ok(amount_out)
-}
-```
-
-And to actually calculate the fee amount, we'll create a separate method:
-
-```rust
-// Helper function to calculate the amount of tokens to receive in a swap
-fn get_amount_out(
-    amount_in: AssetBalanceOf<T>,
-    reserve_in: AssetBalanceOf<T>,
-    reserve_out: AssetBalanceOf<T>,
-) -> Result<AssetBalanceOf<T>, DispatchError> {
-    // Ensure that both reserve balances are non-zero
-    ensure!(
-            !reserve_in.is_zero() && !reserve_out.is_zero(),
-            Error::<T>::InsufficientLiquidity
-        );
-
-    // Calculate the input amount with the swap fee (0.3%) by multiplying by 997 (99.7%)
-    let amount_in_with_fee = amount_in
-        .checked_mul(&AssetBalanceOf::<T>::saturated_from(997u128))
-        .ok_or(Error::<T>::ArithmeticOverflow)?;
-    // Calculate the numerator of the output amount formula
-    let numerator = amount_in_with_fee
-        .checked_mul(&reserve_out)
-        .ok_or(Error::<T>::ArithmeticOverflow)?;
-    // Calculate the denominator of the output amount formula
-    let denominator = reserve_in
-        .checked_mul(&AssetBalanceOf::<T>::saturated_from(1000u128))
-        .ok_or(Error::<T>::ArithmeticOverflow)?
-        .checked_add(&amount_in_with_fee)
-        .ok_or(Error::<T>::ArithmeticOverflow)?;
-
-    // Perform integer division to obtain the final output amount
-    let amount_out = numerator
-        .checked_div(&denominator)
-        .ok_or(Error::<T>::DivisionByZero)?;
-
-    // Return the calculated output amount
-    Ok(amount_out)
-}
-```
+Use one of the methods to refactor the `get_amount_out` method.
